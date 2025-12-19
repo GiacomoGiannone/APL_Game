@@ -17,6 +17,6 @@ class Game
 
     public:
         static Game* getInstance(sf::RenderWindow* window);
-        void update();
+        void update(float dt);
         void setScene(Scene* newScene);
 };

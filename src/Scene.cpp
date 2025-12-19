@@ -58,3 +58,8 @@ void Scene::draw(sf::RenderWindow& window) const
         entity->draw(window);
     }
 }
+
+void Scene::setDt(float dt)
+{
+    this->dt = dt;
+}

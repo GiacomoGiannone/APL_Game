@@ -8,10 +8,10 @@ class Block: public GameObject
     private:
         //shape already holds x,y,width and height
         //no point in duplicating them here
-        sf::RectangleShape shape;
+        sf::Sprite sprite;
         sf::Texture texture;
     public:
-        Block(float x, float y, float width, float height, std::string texturePath);
+        Block(float x, float y, const std::string& texturePath);
         sf::FloatRect getBounds() const;
         void draw(sf::RenderWindow& window) override;
         void update(const Scene& scene) override;

@@ -11,8 +11,8 @@ class Player: public GameObject
 {
     private:
         //no point in saving x and y
-        //RectangleShape holds the values
-        sf::RectangleShape shape;
+        //Sprite holds 
+        sf::Sprite sprite;
         sf::Vector2f velocity;
         std::vector<sf::Texture> walk_textures;
 

@@ -24,8 +24,9 @@ Game::Game(sf::RenderWindow* window):window(window)
 {
 }
 
-void Game::update()
+void Game::update(float dt)
 {
+    currentScene->setDt(dt);
     currentScene->update();
 }
 

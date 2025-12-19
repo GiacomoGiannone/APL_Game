@@ -175,9 +175,12 @@ int main()
     //aggiungiamo un giocatore alla scena
     scene.addEntity(std::make_unique<Player>("assets/pp1/PM1", "CR7"));
     //aggiungiamo dei blocchi alla scena
-    scene.addEntity(std::make_unique<Block>(0.0f, 500.0f, 800.0f, 50.0f, "assets/pp1/Blocks/block1.png"));
-    scene.addEntity(std::make_unique<Block>(300.0f, 400.0f, 200.0f, 40.0f, "assets/pp1/Blocks/block1.png"));
-    scene.addEntity(std::make_unique<Block>(550.0f, 300.0f, 150.0f, 40.0f, "assets/pp1/Blocks/block1.png"));
+    //dimensione dei blocchi(texture)
+    //15x15
+    for(int i=0; i < 40; i++)
+    {
+        scene.addEntity(std::make_unique<Block>(15.0f*i, 500.0f, "assets/pp1/Blocks/block1.png"));
+    }
     //creiamo la finestra di gioco
     sf::RenderWindow window(sf::VideoMode(800, 600), "Platformer Game");
     //creiamo l'istanza del gioco
@@ -199,7 +202,7 @@ int main()
         if (dt > 0.05f) dt = 0.05f; //clamp dt to avoid issues during resizing
 
         //update game logic
-        game->update();
+        game->update(dt);
 
         //rendering
         window.clear(sf::Color::Cyan);

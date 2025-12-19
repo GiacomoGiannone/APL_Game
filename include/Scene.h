@@ -18,6 +18,7 @@ public:
 
     std::vector<Block*> getBlocks() const;
     std::vector<Player*> getPlayers() const;
+    void setDt(float dt);
     float getDt() const;
     void addEntity(std::unique_ptr<GameObject> entity);
     void update();

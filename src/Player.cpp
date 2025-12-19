@@ -3,14 +3,9 @@
 #include "Scene.h"
 #include <iostream>
 
-Player::Player(std::string texturePathFolder, std::string playerName):velocity(0.0f, 0.0f), isGrounded(false), speed(5.0f), gravity(9.81f), 
+Player::Player(std::string texturePathFolder, std::string playerName):velocity(0.0f, 0.0f), isGrounded(false), speed(100.0f), gravity(200.0f), 
                                     current_animation_frame(0), animation_timer(0.1f), animation_speed(0.1f), playerName(playerName)
 {
-    //This is the approximate size of the characters
-    shape.setSize({10.0f, 30.0f});
-    shape.setPosition(100.0f, 100.0f);
-    shape.setFillColor(sf::Color::Green);
-
     //load character texture into ram only once at character creation
     sf::Texture text;
     std::string genericPath;
@@ -32,7 +27,9 @@ Player::Player(std::string texturePathFolder, std::string playerName):velocity(0
         walk_textures.push_back(std::move(text));
     }
     if(!walk_textures.empty())
-        shape.setTexture(&walk_textures[0]);
+        sprite.setTexture(walk_textures[0]);
+
+    sprite.setPosition(100.f, 100.f);
 }
 
 void Player::handle_input()
@@ -64,11 +61,11 @@ void Player::apply_gravity(float dt)
 
 void Player::moveX(float dt, const std::vector<Block*>& blocks)
 {
-    //move the shape object with velocity
-    shape.move(velocity.x * dt, 0.0f);
+    //move the sprite object with velocity
+    sprite.move(velocity.x * dt, 0.0f);
     //now we check the collision on this axis
     //first we obtain the player bounds
-    auto playerBounds = shape.getGlobalBounds();
+    auto playerBounds = sprite.getGlobalBounds();
 
     //now we need to check for all the blocks in the blocks vector
     //(cant we do the check only on nearby blocks?)
@@ -81,7 +78,7 @@ void Player::moveX(float dt, const std::vector<Block*>& blocks)
             {
                 //player is trying to go through the block
                 //we prevent them from doing so by setting the position to the last valid position
-                shape.setPosition(block->getBounds().left - playerBounds.width, shape.getPosition().y);
+                sprite.setPosition(block->getBounds().left - playerBounds.width, sprite.getPosition().y);
             }
         }
     }
@@ -89,11 +86,11 @@ void Player::moveX(float dt, const std::vector<Block*>& blocks)
 
 void Player::moveY(float dt, const std::vector<Block*>& blocks)
 {
-    //move the shape object with velocity
-    shape.move(velocity.y * dt, 0.0f);
+    //move the sprite object with velocity
+    sprite.move(0.0f, velocity.y * dt);
     //now we check the collision on this axis
     //first we obtain the player bounds
-    auto playerBounds = shape.getGlobalBounds();
+    auto playerBounds = sprite.getGlobalBounds();
     isGrounded = false;
 
     //now we need to check for all the blocks in the blocks vector
@@ -107,16 +104,16 @@ void Player::moveY(float dt, const std::vector<Block*>& blocks)
             {
                 //player is trying to go through the block from the low side (head impacting on the block)
                 //we prevent them from doing so by setting the position to the last valid position
-                shape.setPosition(shape.getPosition().x, block->getBounds().top - playerBounds.height);
+                sprite.setPosition(sprite.getPosition().x, block->getBounds().top - playerBounds.height);
                 isGrounded = true;
             }
             else
             {
                 //player is simply walking on the block
-                shape.setPosition(shape.getPosition().x, block->getBounds().top + block->getBounds().height);
+                sprite.setPosition(sprite.getPosition().x, block->getBounds().top + block->getBounds().height);
             }
             velocity.y = 0;
-            playerBounds = shape.getGlobalBounds();
+            playerBounds = sprite.getGlobalBounds();
         }
     }
 }
@@ -131,13 +128,13 @@ void Player::updateAnimation(float dt)
     {
         animation_timer = 0.f;
         current_animation_frame = (current_animation_frame + 1) % walk_textures.size();
-        shape.setTexture(&walk_textures[current_animation_frame]);
+        sprite.setTexture(walk_textures[current_animation_frame]);
     }
 }
 
 void Player::draw(sf::RenderWindow &window) 
 {
-    window.draw(shape);
+    window.draw(sprite);
 }
 
 void Player::update(const Scene& scene) 
@@ -149,4 +146,15 @@ void Player::update(const Scene& scene)
     moveX(dt, blocks);
     moveY(dt, blocks);
     updateAnimation(dt);
+
+    //each 500 frames print all the info about the player
+    static int frameCounter = 0;
+    frameCounter++;
+    if(frameCounter >= 500)
+    {
+        frameCounter = 0;
+        std::cout << "Player: " << playerName << " Position: (" << sprite.getPosition().x << ", " 
+                    << sprite.getPosition().y << ") Velocity: (" << velocity.x << ", " << velocity.y << ") " 
+                     << isGrounded << std::endl;
+    }
 }
