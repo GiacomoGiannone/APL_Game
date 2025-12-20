@@ -4,7 +4,7 @@
 #include <iostream>
 
 Player::Player(std::string Folder, std::string playerName)
-    : velocity(0.0f, 0.0f), isGrounded(false), speed(200.0f), gravity(500.0f),
+    : velocity(0.0f, 0.0f), isGrounded(false), speed(200.0f), gravity(200.0f),
       current_animation_frame(0), animation_timer(0.1f), animation_speed(0.1f),
       playerName(playerName), facingRight(true)
 {
@@ -56,6 +56,22 @@ Player::Player(std::string Folder, std::string playerName)
     sprite.setPosition(100.f, 100.f);
     
     // Setup collider (più piccolo del personaggio
+    //il personaggio e' centrato con la texture
+    //dobbiamo ritagliare il collider per ottenere la dimensione giusta
+    float spriteWidth = sprite.getLocalBounds().width;
+    float spriteHeight = sprite.getLocalBounds().height;
+    
+    // Dimensioni del collider (adatta queste al tuo personaggio)
+    collider.width = 15.f;   // Larghezza del collider
+    collider.height = 30.f;  // Altezza del collider
+    
+    // Calcola offset per centrare il collider
+    // Il collider è centrato orizzontalmente e in basso verticalmente
+    colliderOffsetX = (spriteWidth - collider.width) / 2.f;
+    colliderOffsetY = spriteHeight - collider.height; // Collider nella parte bassa
+    
+    // Inizializza la posizione del collider
+    updateCollider();
 }
 
 void Player::handle_input()
@@ -76,7 +92,7 @@ void Player::handle_input()
     {
         //we will adjust gravity later in the applyGravity function
         //if not the player would keep flying
-        velocity.y = -10.0f;
+        velocity.y = -200.0f;
     }
 }
 
@@ -108,6 +124,7 @@ void Player::moveX(float dt, const std::vector<Block*>& blocks)
             }
         }
     }
+    updateCollider();
 }
 
 void Player::moveY(float dt, const std::vector<Block*>& blocks)
@@ -142,6 +159,7 @@ void Player::moveY(float dt, const std::vector<Block*>& blocks)
             playerBounds = sprite.getGlobalBounds();
         }
     }
+    updateCollider();
 }
 
 void Player::updateAnimation(float dt)
@@ -158,9 +176,23 @@ void Player::updateAnimation(float dt)
     }
 }
 
+void Player::updateCollider()
+{
+    // Aggiorna la posizione del collider in base alla posizione dello sprite
+    collider.left = sprite.getPosition().x + colliderOffsetX;
+    collider.top = sprite.getPosition().y + colliderOffsetY;
+}
+
 void Player::draw(sf::RenderWindow &window) 
 {
     window.draw(sprite);
+    sf::RectangleShape debugRect;
+    debugRect.setPosition(collider.left, collider.top);
+    debugRect.setSize(sf::Vector2f(collider.width, collider.height));
+    debugRect.setFillColor(sf::Color(255, 0, 0, 100)); // Rosso semitrasparente
+    debugRect.setOutlineColor(sf::Color::Red);
+    debugRect.setOutlineThickness(1.f);
+    window.draw(debugRect);
 }
 
 void Player::update(const Scene& scene) 

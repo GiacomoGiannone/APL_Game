@@ -20,6 +20,10 @@ class Player: public GameObject
         std::vector<sf::Texture> jump_textures;
         sf::Texture falling_texture;
 
+        //we need to add a rectangle for the player collisions
+        float colliderOffsetX;
+        float colliderOffsetY;
+        sf::FloatRect collider;
 
         int current_animation_frame;
         float animation_timer, animation_speed;
@@ -35,6 +39,7 @@ class Player: public GameObject
         void moveX(float dt, const std::vector<Block*>& blocks);
         void moveY(float dt, const std::vector<Block*>& blocks);
         void updateAnimation(float dt);
+        void updateCollider();
     public:
         Player(std::string texturePathFolder, std::string playerName);
         void update(const Scene& scene) override;
