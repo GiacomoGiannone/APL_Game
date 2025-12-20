@@ -14,8 +14,8 @@ class Player: public GameObject
         //Sprite holds 
         sf::Sprite sprite;
         sf::Vector2f velocity;
+        
         std::vector<sf::Texture> walk_textures;
-
         sf::Texture idle_texture;
         std::vector<sf::Texture> jump_textures;
         sf::Texture falling_texture;
@@ -44,4 +44,16 @@ class Player: public GameObject
         Player(std::string texturePathFolder, std::string playerName);
         void update(const Scene& scene) override;
         void draw(sf::RenderWindow &window) override;
+
+        enum class PlayerState
+        {
+            idle,
+            walking,
+            jumping,
+            falling
+        };
+
+    private:
+        PlayerState state = PlayerState::idle;
+        PlayerState getState();
 };

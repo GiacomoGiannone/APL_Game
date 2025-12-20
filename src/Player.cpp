@@ -52,25 +52,39 @@ Player::Player(std::string Folder, std::string playerName)
     // Setup sprite
     sprite.setTexture(idle_texture);
     
-    // Imposta origine al centro per flip corretto
+    // 1. MISURA MANUALE: guarda la texture e trova questi valori
+    // Dovrai adattarli alla tua texture specifica
+    float textureFullWidth = sprite.getLocalBounds().width;   // Es: 128px
+    float textureFullHeight = sprite.getLocalBounds().height; // Es: 128px
+    
+    // 2. Dove inizia il personaggio nella texture (ritaglio)
+    float characterStartX = 41.f;  // Spazio vuoto a sinistra prima del personaggio
+    float characterStartY = 24.0f;  // Spazio vuoto sopra prima del personaggio
+    float characterWidth = 15.f;   // Larghezza effettiva del personaggio  
+    float characterHeight = 30.f; // Altezza effettiva del personaggio
+    
+    // 3. Imposta il textureRect per ritagliare SOLO il personaggio
+    sprite.setTextureRect(sf::IntRect(
+        characterStartX,      // X di inizio ritaglio
+        characterStartY,      // Y di inizio ritaglio
+        characterWidth,       // Larghezza del ritaglio
+        characterHeight       // Altezza del ritaglio
+    ));
+    
+    // 4. Imposta l'origine al CENTRO del personaggio ritagliato
+    sprite.setOrigin(characterWidth / 2.f, characterHeight / 2.f);
+    
+    // 5. Posiziona il personaggio
     sprite.setPosition(100.f, 100.f);
     
-    // Setup collider (più piccolo del personaggio
-    //il personaggio e' centrato con la texture
-    //dobbiamo ritagliare il collider per ottenere la dimensione giusta
-    float spriteWidth = sprite.getLocalBounds().width;
-    float spriteHeight = sprite.getLocalBounds().height;
+    // 6. Configura il collider (ora è più semplice!)
+    collider.width = characterWidth * 0.75;    // Collider più stretto del personaggio
+    collider.height = characterHeight;  // Collider più basso del personaggio
     
-    // Dimensioni del collider (adatta queste al tuo personaggio)
-    collider.width = 15.f;   // Larghezza del collider
-    collider.height = 30.f;  // Altezza del collider
+    // Offset per centrare il collider DENTRO il personaggio
+    colliderOffsetX = (characterWidth - collider.width) / 2.f;
+    colliderOffsetY = characterHeight - collider.height; // Collider nella parte bassa
     
-    // Calcola offset per centrare il collider
-    // Il collider è centrato orizzontalmente e in basso verticalmente
-    colliderOffsetX = (spriteWidth - collider.width) / 2.f;
-    colliderOffsetY = spriteHeight - collider.height; // Collider nella parte bassa
-    
-    // Inizializza la posizione del collider
     updateCollider();
 }
 
@@ -105,121 +119,169 @@ void Player::apply_gravity(float dt)
 
 void Player::moveX(float dt, const std::vector<Block*>& blocks)
 {
-    // 1. Muovi lo sprite
     sprite.move(velocity.x * dt, 0.0f);
-    
-    // 2. Aggiorna il collider
     updateCollider();
     
-    // 3. Controlla collisioni usando il collider, non i bounds dello sprite
     for(const auto& block : blocks)
     {
         if(collider.intersects(block->getBounds()))
         {
-            // Collisione sull'asse X rilevata
-            if(velocity.x > 0) // Andando a DESTRA
+            // Calcola la sovrapposizione
+            float overlap = 0.f;
+            
+            if(velocity.x > 0) // Destra
             {
-                // Il player sta cercando di passare attraverso il blocco da destra
-                // Lo posizioniamo a sinistra del blocco
-                sprite.setPosition(block->getBounds().left - collider.width - colliderOffsetX, 
-                                 sprite.getPosition().y);
+                // Il lato destro del collider è oltre il lato sinistro del blocco
+                overlap = (collider.left + collider.width) - block->getBounds().left;
+                sprite.move(-overlap, 0.f);
             }
-            else if(velocity.x < 0) // Andando a SINISTRA
+            else if(velocity.x < 0) // Sinistra
             {
-                // Il player sta cercando di passare attraverso il blocco da sinistra  
-                // Lo posizioniamo a destra del blocco
-                sprite.setPosition(block->getBounds().left + block->getBounds().width - colliderOffsetX, 
-                                 sprite.getPosition().y);
+                // Il lato sinistro del collider è oltre il lato destro del blocco
+                overlap = block->getBounds().left + block->getBounds().width - collider.left;
+                sprite.move(overlap, 0.f);
             }
             
-            // 4. Aggiorna di nuovo il collider dopo aver corretto la posizione
             updateCollider();
-            velocity.x = 0; // Ferma il movimento sull'asse X
-            break; // Gestisci solo una collisione alla volta
+            velocity.x = 0;
+            break;
         }
     }
 }
 
 void Player::moveY(float dt, const std::vector<Block*>& blocks)
 {
-    // 1. Muovi lo sprite
     sprite.move(0.0f, velocity.y * dt);
-    
-    // 2. Aggiorna il collider
     updateCollider();
     
-    // 3. Reset dello stato grounded
     isGrounded = false;
     
-    // 4. Controlla collisioni usando il collider
     for(const auto& block : blocks)
     {
         if(collider.intersects(block->getBounds()))
         {
-            // Determina la direzione della collisione
-            if(velocity.y > 0) // CADENDO (verso il basso)
+            float overlap = 0.f;
+            
+            if(velocity.y > 0) // Cadendo
             {
-                // Collisione dal basso: il player atterra sul blocco
-                sprite.setPosition(sprite.getPosition().x, 
-                                 block->getBounds().top - collider.height - colliderOffsetY);
+                // Il fondo del collider è oltre la cima del blocco
+                overlap = (collider.top + collider.height) - block->getBounds().top;
+                sprite.move(0.f, -overlap);
                 isGrounded = true;
             }
-            else if(velocity.y < 0) // SALTANDO (verso l'alto)
+            else if(velocity.y < 0) // Saltando
             {
-                // Collisione dall'alto: il player colpisce la testa
-                sprite.setPosition(sprite.getPosition().x, 
-                                 block->getBounds().top + block->getBounds().height - colliderOffsetY);
+                // La cima del collider è oltre il fondo del blocco
+                overlap = block->getBounds().top + block->getBounds().height - collider.top;
+                sprite.move(0.f, overlap);
             }
             
-            // 5. Aggiorna di nuovo il collider dopo aver corretto la posizione
             updateCollider();
-            velocity.y = 0; // Ferma il movimento sull'asse Y
-            break; // Gestisci solo una collisione alla volta
+            velocity.y = 0;
+            break;
         }
     }
 }
 
 void Player::updateAnimation(float dt)
 {
-    if (velocity.x == 0.f) 
-        return;
-
-    animation_timer += dt;
-    if (animation_timer >= animation_speed)
+    // Cache
+    static sf::Texture* lastTexture = nullptr;
+    static bool lastFacingRight = true;
+    
+    // Determina texture
+    sf::Texture* texture = &idle_texture;
+    
+    if(!isGrounded)
     {
-        animation_timer = 0.f;
-        current_animation_frame = (current_animation_frame + 1) % walk_textures.size();
-        sprite.setTexture(walk_textures[current_animation_frame]);
+        texture = (velocity.y < 0) ? &jump_textures[0] : &falling_texture;
     }
-
-    if(!facingRight)
+    else if(velocity.x != 0.f)
     {
-        //flip the sprite
-        sprite.setScale(-1, 1);
+        // Walking animation
+        animation_timer += dt;
+        if(animation_timer >= animation_speed)
+        {
+            animation_timer = 0.f;
+            current_animation_frame = (current_animation_frame + 1) % walk_textures.size();
+        }
+        texture = &walk_textures[current_animation_frame];
+    }
+    
+    // Cambia texture SOLO se necessario
+    if(texture != lastTexture || facingRight != lastFacingRight)
+    {
+        sprite.setTexture(*texture);
+        sprite.setTextureRect(sf::IntRect(41, 24, 15, 30));
+        
+        // Flip
+        sprite.setScale(facingRight ? 1.f : -1.f, 1.f);
+        
+        // Update cache
+        lastTexture = texture;
+        lastFacingRight = facingRight;
+    }
+}
+
+Player::PlayerState Player::getState() 
+{
+    if(!isGrounded)
+    {
+        if(velocity.y < 0)
+            return PlayerState::jumping;
+        else
+            return PlayerState::falling;
+    }
+    else if(velocity.x != 0.f)
+    {
+        return PlayerState::walking;
     }
     else
     {
-        sprite.setScale(1, 1);
+        return PlayerState::idle;
     }
 }
 
 void Player::updateCollider()
 {
-    // Aggiorna la posizione del collider in base alla posizione dello sprite
-    collider.left = sprite.getPosition().x + colliderOffsetX;
-    collider.top = sprite.getPosition().y + colliderOffsetY;
+    // Semplicissimo: collider centrato sull'origine dello sprite
+    collider.left = sprite.getPosition().x - (collider.width / 2.f);
+    collider.top = sprite.getPosition().y - (collider.height / 2.f);
 }
 
 void Player::draw(sf::RenderWindow &window) 
 {
     window.draw(sprite);
-    sf::RectangleShape debugRect;
-    debugRect.setPosition(collider.left, collider.top);
-    debugRect.setSize(sf::Vector2f(collider.width, collider.height));
-    debugRect.setFillColor(sf::Color(255, 0, 0, 100)); // Rosso semitrasparente
-    debugRect.setOutlineColor(sf::Color::Red);
-    debugRect.setOutlineThickness(1.f);
-    window.draw(debugRect);
+    /*
+    // Disegna l'origine (punto rosso)
+    sf::CircleShape originDot(3.f);
+    originDot.setPosition(
+        sprite.getPosition().x - 3.f,
+        sprite.getPosition().y - 3.f
+    );
+    originDot.setFillColor(sf::Color::Red);
+    window.draw(originDot);
+    
+    // Disegna il rettangolo del personaggio visibile
+    sf::RectangleShape visibleRect;
+    visibleRect.setPosition(
+        sprite.getPosition().x - (collider.width / 2.f),
+        sprite.getPosition().y - (collider.height / 2.f)
+    );
+    visibleRect.setSize(sf::Vector2f(collider.width, collider.height));
+    visibleRect.setFillColor(sf::Color::Transparent);
+    visibleRect.setOutlineColor(sf::Color::Green);
+    visibleRect.setOutlineThickness(1.f);
+    window.draw(visibleRect);
+    
+    // Disegna il collider
+    sf::RectangleShape colliderRect;
+    colliderRect.setPosition(collider.left, collider.top);
+    colliderRect.setSize(sf::Vector2f(collider.width, collider.height));
+    colliderRect.setFillColor(sf::Color(255, 0, 0, 100));
+    colliderRect.setOutlineColor(sf::Color::Red);
+    colliderRect.setOutlineThickness(2.f);
+    window.draw(colliderRect);*/
 }
 
 void Player::update(const Scene& scene) 
@@ -239,7 +301,10 @@ void Player::update(const Scene& scene)
     {
         frameCounter = 0;
         std::cout << "Player: " << playerName << " Position: (" << sprite.getPosition().x << ", " 
-                    << sprite.getPosition().y << ") Velocity: (" << velocity.x << ", " << velocity.y << ") " 
-                     << isGrounded << std::endl;
+                    << sprite.getPosition().y << ") Velocity: (" << velocity.x << ", " << velocity.y << ") "  << std::endl;
+        if(isGrounded)
+            std::cout << "isGrounded" << std::endl;
+        else   
+            std::cout << "NotGrounded" << std::endl;
     }
 }

@@ -185,6 +185,8 @@ int main()
     }
     //creiamo la finestra di gioco
     sf::RenderWindow window(sf::VideoMode(800, 600), "Platformer Game");
+    window.setVerticalSyncEnabled(false); // DISABILITA VSYNC
+    window.setFramerateLimit(120); // Limita a 60 FPS
     //creiamo l'istanza del gioco
     Game* game = Game::getInstance(&window);
     //settiamo la scena corrente
