@@ -2,6 +2,7 @@
 build/
 out/
 bin/
+deps/
 *.exe
 
 # IDE files
