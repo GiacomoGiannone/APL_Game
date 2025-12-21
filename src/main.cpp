@@ -5,6 +5,7 @@
 #include "Block.h"
 #include "Scene.h"
 #include "Game.h"
+#include "NetworkClient.h"
 
 // struct Block {
 //     sf::RectangleShape shape;
@@ -187,6 +188,20 @@ int main()
     sf::RenderWindow window(sf::VideoMode(800, 600), "Platformer Game");
     window.setVerticalSyncEnabled(false); // DISABILITA VSYNC
     window.setFramerateLimit(60); // Limita a 60 FPS
+   
+   // Si usa "127.0.0.1" (Localhost) se il server Go gira sullo stesso PC.
+    // Se il server è su un altro PC, si mette l'IP di quel PC.
+    // La porta 8080 deve corrispondere a quella che si userà nel server Go.
+    /*if (NetworkClient::getInstance()->connect("127.0.0.1", 8080))
+    {
+        std::cout << "CONNESSO AL SERVER!" << std::endl;
+    }
+    else
+    {
+        std::cout << "IMPOSSIBILE CONNETTERSI (Server spento o IP errato)." << std::endl;
+        std::cout << "Il gioco girerà in modalità offline." << std::endl;
+    }*/
+   
     //creiamo l'istanza del gioco
     Game* game = Game::getInstance(&window);
     //settiamo la scena corrente
@@ -214,4 +229,7 @@ int main()
         window.display();
     }
 
+    //Disconnessione dal server prima di chiudere il gioco
+    /*NetworkClient::getInstance()->disconnect();
+    return 0;*/
 }

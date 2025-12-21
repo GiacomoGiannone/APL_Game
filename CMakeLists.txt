@@ -11,7 +11,7 @@ set(CMAKE_CXX_STANDARD 17)
 # file(GLOB_RECURSE HEADERS "include/*.h" "include/*.hpp")
 file(GLOB_RECURSE SOURCES 
     "src/*.cpp"
-    "net/*.cpp"           # <-- AGGIUNGI QUESTO
+    "net/*.cpp"           
     "src/**/*.cpp"        # Ricorsivo in src
     "net/**/*.cpp"        # Ricorsivo in net
 )
@@ -19,7 +19,7 @@ file(GLOB_RECURSE SOURCES
 file(GLOB_RECURSE HEADERS 
     "include/*.h" 
     "include/*.hpp"
-    "net/*.h"             # <-- AGGIUNGI QUESTO
+    "net/*.h"            
     "net/*.hpp"
 )
 

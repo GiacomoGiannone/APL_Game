@@ -90,6 +90,16 @@ Player::Player(std::string Folder, std::string playerName, bool localPlayer)
     updateCollider();
 }
 
+uint8_t Player::getId() const
+{
+    return id;
+}
+
+void Player::setId(uint8_t newId)
+{
+    id = newId;
+}
+
 void Player::handle_input()
 {
     velocity.x = 0.0f;
@@ -295,34 +305,35 @@ void Player::update(const Scene& scene)
 {
     float dt = scene.getDt();
     auto blocks = scene.getBlocks();
-    //TODO handle only localPlayer input
-    handle_input();
-    apply_gravity(scene.getDt());
-    moveX(dt, blocks);
-    moveY(dt, blocks);
+    
+    if (localPlayer) {
+        handle_input();
+        apply_gravity(scene.getDt());
+        moveX(dt, blocks);
+        moveY(dt, blocks);
+
+        // Send movement packet to server
+        if (localPlayer && NetworkClient::getInstance()->isConnected()) {
+            PacketMove packet;
+            packet.header.type = PacketType::MOVE;
+            packet.playerId = 1; // TODO: Sostituire con il vero ID assegnato al Login
+            packet.x = sprite.getPosition().x;
+            packet.y = sprite.getPosition().y;
+            packet.velocityX = velocity.x;
+            packet.velocityY = velocity.y;
+            packet.isFacingRight = facingRight;
+            packet.isGrounded = isGrounded;
+
+            NetworkClient::getInstance()->sendPacket(packet); // Spedisci!
+        }
+    }
+    
     updateAnimation(dt);
 
-    if (localPlayer && NetworkClient::getInstance()->isConnected()) 
-    {
-        PacketMove packet;
-        packet.header.type = PacketType::MOVE;
-        // L'ID dovrebbe essere assegnato dal server al login, per ora metti 0 o 1
-        packet.playerId = 1; 
-        packet.x = sprite.getPosition().x;
-        packet.y = sprite.getPosition().y;
-        packet.velocityX = velocity.x;
-        packet.velocityY = velocity.y;
-        packet.isFacingRight = facingRight;
-        packet.isGrounded = isGrounded;
-
-        // Spedisci!
-        NetworkClient::getInstance()->sendPacket(packet);
-    }
-
-    //each 500 frames print all the info about the player
+    //each 60 frames print all the info about the player
     static int frameCounter = 0;
     frameCounter++;
-    if(frameCounter >= 500)
+    if(frameCounter >= 60)
     {
         frameCounter = 0;
         std::cout << "Player: " << playerName << " Position: (" << sprite.getPosition().x << ", " 
@@ -332,4 +343,18 @@ void Player::update(const Scene& scene)
         else   
             std::cout << "NotGrounded" << std::endl;
     }
+}
+
+// Sincronizza lo stato (la posizione, la velocità, ecc.) dei giocatori remoti dai dati di rete ricevuti
+// Da chiamare quando arriva un PacketMove dal server per questo player
+void Player::syncFromNetwork(float x, float y, float velX, float velY, bool faceRight, bool grounded)
+{
+    if (localPlayer)
+        return; // Per essere sicuri la funzione non venga chiamata sul player locale
+
+    sprite.setPosition(x, y); // Teletrasporto (più avanti si potrà fare interpolazione)
+    velocity.x = velX;        // Serve per far funzionare updateAnimation()
+    velocity.y = velY;
+    facingRight = faceRight;
+    isGrounded = grounded;
 }
