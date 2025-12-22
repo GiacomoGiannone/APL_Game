@@ -2,8 +2,6 @@
 
 #include "Game.h"
 #include "Scene.h"
-#include "Player.h"
-#include "NetMessages.h"
 
 // Inizializzazione membro statico
 Game* Game::instance = nullptr;
@@ -12,11 +10,11 @@ Game* Game::getInstance(sf::RenderWindow* window)
 {
     if(instance == nullptr)
     {
-        instance = new Game(window);
-    }
-    else
-    {
-        std::cerr << "Game already instantiated" << std::endl;
+        if (window != nullptr) {
+            instance = new Game(window);
+        } else {
+            std::cerr << "ERRORE: Tentativo di accedere a Game::getInstance() prima dell'inizializzazione!" << std::endl;
+        }
     }
     return instance; 
 }
@@ -45,4 +43,12 @@ void Game::setLocalPlayerId(int id) {
 
 int Game::getLocalPlayerId() const {
     return this->localPlayerId;
+}
+
+void Game::setFocus(bool focus) {
+    this->isWindowFocused = focus;
+}
+
+bool Game::hasFocus() const {
+    return this->isWindowFocused;
 }

@@ -15,11 +15,14 @@ class Game
         sf::RenderWindow* window;
         Game(sf::RenderWindow* window);
         int localPlayerId;
+        bool isWindowFocused;
 
     public:
-        static Game* getInstance(sf::RenderWindow* window);
+        static Game* getInstance(sf::RenderWindow* window = nullptr);
         void update(float dt);
         void setScene(Scene* newScene);
         void setLocalPlayerId(int id);
         int getLocalPlayerId() const;
+        void setFocus(bool focus);
+        bool hasFocus() const;
 };

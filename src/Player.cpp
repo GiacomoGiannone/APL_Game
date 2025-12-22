@@ -1,6 +1,7 @@
 #include "Player.h"
 #include "Block.h"
 #include "Scene.h"
+#include "Game.h"
 #include "NetMessages.h"
 #include "NetworkClient.h"
 #include <iostream>
@@ -102,6 +103,8 @@ void Player::setId(int newId)
 
 void Player::handle_input()
 {
+    if (!Game::getInstance()->hasFocus()) return;
+
     velocity.x = 0.0f;
     //check if player wants to go to the left
     if(sf::Keyboard::isKeyPressed(sf::Keyboard::A))

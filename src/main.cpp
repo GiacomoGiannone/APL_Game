@@ -83,6 +83,12 @@ int main()
         {
             if (event.type == sf::Event::Closed)
                 window.close();
+
+            if (event.type == sf::Event::GainedFocus) 
+                game->setFocus(true);
+                
+            if (event.type == sf::Event::LostFocus) 
+                game->setFocus(false);
         }
 
         float dt = clock.restart().asSeconds();
