@@ -50,7 +50,7 @@ void Scene::addEntity(std::unique_ptr<GameObject> entity)
 void Scene::addRemotePlayer(int id)
 {
     // Creiamo il player remoto (false = non controllato da tastiera)
-    auto remotePlayer = std::make_unique<Player>("assets/pp1", "Nemico", false);
+    auto remotePlayer = std::make_unique<Player>("PM1", "Nemico", false);
     remotePlayer->setId(id);
     addEntity(std::move(remotePlayer));
     std::cout << "🌐 Connesso nuovo giocatore remoto: ID " << id << std::endl;

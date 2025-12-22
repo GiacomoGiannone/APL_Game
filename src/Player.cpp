@@ -8,7 +8,7 @@
 Player::Player(std::string Folder, std::string playerName, bool localPlayer)
     : velocity(0.0f, 0.0f), isGrounded(false), speed(200.0f), gravity(200.0f),
       current_animation_frame(0), animation_timer(0.1f), animation_speed(0.1f),
-      playerName(playerName), facingRight(true), localPlayer(localPlayer)
+      playerName(playerName), facingRight(true), localPlayer(localPlayer), folder(Folder)
 {
     // Carica texture idle
     std::string path_to_texture = "assets/pp1/" + Folder + "/metarig.004-0_0000.png";

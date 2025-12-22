@@ -31,6 +31,7 @@ struct PacketMove
     float velocityY;
     bool isFacingRight;  // Dove guardi?
     bool isGrounded;     // Stai saltando?
+    //TODO add from which folder the textures must be rendered
 };
 
 // 3. Pacchetto Login (Esempio)

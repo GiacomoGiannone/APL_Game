@@ -36,6 +36,7 @@ class Player: public GameObject
         bool localPlayer;
 
         std::string playerName;
+        std::string folder;
         int id; // max 255 giocatori
 
         void handle_input();

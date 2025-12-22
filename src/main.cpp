@@ -57,7 +57,7 @@ int main()
     scene.setLocalPlayerId(myPlayerId); 
 
     // Creazione del Player Locale
-    auto localPlayer = std::make_unique<Player>("assets/pp1", playerName, true);
+    auto localPlayer = std::make_unique<Player>("PM1", playerName, true);
     localPlayer->setId(myPlayerId); // Assegniamo l'ID al nostro player così sa chi è quando invia i pacchetti
     scene.addEntity(std::move(localPlayer));
 
