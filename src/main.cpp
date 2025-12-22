@@ -174,7 +174,10 @@ int main()
     //creiamo la scena
     Scene scene;
     //aggiungiamo un giocatore alla scena
-    scene.addEntity(std::make_unique<Player>("PM1", "CR7", /*localPlayer*/true));
+    std::string playerName;
+    std::cout << "Inserisci il tuo nome!: ";
+    std::cin >> playerName;
+    scene.addEntity(std::make_unique<Player>("PM1", playerName, /*localPlayer*/true));
     //aggiungiamo dei blocchi alla scena
     //dimensione dei blocchi(texture)
     //15x15

@@ -28,20 +28,34 @@ class NetworkClient
         template <typename T>
         void sendPacket(T& packet)
         {
-            if (!connected) 
+            if (!connected)
                 return;
 
-            // 1. Compila l'header automaticamente
-            // (Calcola la dimensione totale della struct T)
             packet.header.packetSize = sizeof(T);
-            
-            // 2. Spedisci i byte grezzi
-            // reinterpret_cast trasforma la struct in un array di char (byte)
-            if (socket.send(&packet, sizeof(T)) != sf::Socket::Status::Done) 
+
+            const char* data = reinterpret_cast<const char*>(&packet);
+            std::size_t totalSent = 0;
+            std::size_t size = sizeof(T);
+
+            while (totalSent < size)
             {
-                std::cerr << "Errore invio pacchetto!" << std::endl;
+                std::size_t sent = 0;
+                sf::Socket::Status status = socket.send(
+                    data + totalSent,
+                    size - totalSent,
+                    sent
+                );
+
+                if (status != sf::Socket::Done)
+                {
+                    std::cerr << "Errore invio pacchetto!" << std::endl;
+                    return;
+                }
+
+                totalSent += sent;
             }
         }
+
 
         // RICEZIONE (Semplificata per ora)
         // Cerca di ricevere dati nel buffer

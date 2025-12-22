@@ -29,7 +29,7 @@ Player::Player(std::string Folder, std::string playerName, bool localPlayer)
         walk_textures.push_back(text);
     }
     
-    // Carica texture jump
+    // Carica texture djump
     path_to_texture = "assets/pp1/" + Folder + "/metarig.004-0_0009.png";
     if(!text.loadFromFile(path_to_texture))
     {
