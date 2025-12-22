@@ -1,5 +1,6 @@
 #include "Scene.h"
 #include <typeinfo>
+#include <iostream> // Serve per std::cout
 
 #include "Block.h"
 #include "Player.h"
@@ -35,7 +36,6 @@ std::vector<Player*> Scene::getPlayers() const
     return players;
 }
 
-
 float Scene::getDt() const
 {
     return dt;
@@ -46,51 +46,89 @@ void Scene::addEntity(std::unique_ptr<GameObject> entity)
     entities.push_back(std::move(entity));
 }
 
+// Implementazione della funzione helper definita in Scene.h
+void Scene::addRemotePlayer(int id)
+{
+    // Creiamo il player remoto (false = non controllato da tastiera)
+    auto remotePlayer = std::make_unique<Player>("assets/pp1", "Nemico", false);
+    remotePlayer->setId(id);
+    addEntity(std::move(remotePlayer));
+    std::cout << "🌐 Connesso nuovo giocatore remoto: ID " << id << std::endl;
+}
+
 void Scene::update()
 {
-    /* Prima di aggiornare la scena, controlliamo se ci sono messaggi di rete in arrivo
-       dal server, e applichiamo gli aggiornamenti di stato ai giocatori remoti.*/
-    // Creiamo un buffer per ricevere l'header del pacchetto e verificarne il tipo
+    // --------------------------------------------------------
+    // GESTIONE RETE
+    // --------------------------------------------------------
     PacketHeader header;
     size_t received;
-    // Proviamo a ricevere l'header (in modalità non bloccante)
-    auto status = NetworkClient::getInstance()->receive(&header, sizeof(header), received);
-    if (status == sf::Socket::Done && received == sizeof(header))
+
+    // MODIFICA IMPORTANTE: Usiamo un WHILE, non un IF.
+    // Dobbiamo processare TUTTI i pacchetti arrivati, non solo uno alla volta.
+    while (NetworkClient::getInstance()->receive(&header, sizeof(header), received) == sf::Socket::Done)
     {
-        // Abbiamo ricevuto un pacchetto! Vediamo se è di movimento.
+        // Controllo validità header
+        if (received != sizeof(header)) break;
+
         if (header.type == PacketType::MOVE)
         {
-            // È di tipo MOVE, riceviamo il resto del pacchetto, ma prima creiamo un nuovo pacchetto e copiamo l'header già letto
             PacketMove movePacket;
             movePacket.header = header;      
-            // Per leggere il resto del pacchetto, calcoliamo prima la dimensione del body, e troviamo il puntatore al body
-            size_t remainingSize = sizeof(PacketMove) - sizeof(PacketHeader);
-            char* buffer = (char*)&movePacket + sizeof(PacketHeader); // Puntatore al body calcolato come indirizzo di mem in cui inizia il move packet + sizeof header
-            // Riceviamo il resto del pacchetto
-            NetworkClient::getInstance()->receive(buffer, remainingSize, received);
             
-            // Ora abbiamo il pacchetto completo in movePacket, cerchiamo il giocatore corrispondente e applichiamo l'aggiornamento.            
-            auto players = getPlayers();
+            size_t remainingSize = sizeof(PacketMove) - sizeof(PacketHeader);
+            char* buffer = (char*)&movePacket + sizeof(PacketHeader); 
+            
+            // Riceviamo il corpo del messaggio
+            if (NetworkClient::getInstance()->receive(buffer, remainingSize, received) != sf::Socket::Done)
+                break; // Errore di lettura, usciamo
+
+            // Se il pacchetto è mio (del local player), lo ignoro.
+            // (Il server me lo rimanda indietro, ma io so già dove sono)
+            if (movePacket.playerId == localPlayerId) continue;
+
+            bool found = false;
+            auto players = getPlayers(); 
+
+            // 1. Aggiornamento Player Esistente
             for (auto* player : players)
             {
-                // Se il player ha l'ID corrispondente e NON è quello locale, applichiamo l'aggiornamento
-                if (player->getId() == movePacket.playerId && !player->isLocal())
+                if (player->getId() == movePacket.playerId)
                 {
                     player->syncFromNetwork(
-                        movePacket.x, 
-                        movePacket.y, 
-                        movePacket.velocityX, 
-                        movePacket.velocityY, 
-                        movePacket.isFacingRight, 
-                        movePacket.isGrounded
+                        movePacket.x, movePacket.y, 
+                        movePacket.velocityX, movePacket.velocityY, 
+                        movePacket.isFacingRight, movePacket.isGrounded
                     );
+                    found = true;
                     break;
+                }
+            }
+
+            // 2. Creazione Nuovo Player (se non trovato)
+            if (!found)
+            {
+                // Usiamo la funzione helper per pulizia
+                addRemotePlayer(movePacket.playerId);
+
+                // E dobbiamo sincronizzarlo SUBITO per evitare che appaia a (0,0) per un frame
+                // Cerchiamo l'ultimo elemento aggiunto (che è il nostro nuovo player)
+                // Nota: sappiamo che è un Player perché lo abbiamo appena aggiunto.
+                if (Player* newP = dynamic_cast<Player*>(entities.back().get()))
+                {
+                    newP->syncFromNetwork(
+                        movePacket.x, movePacket.y, 
+                        movePacket.velocityX, movePacket.velocityY, 
+                        movePacket.isFacingRight, movePacket.isGrounded
+                    );
                 }
             }
         }
     }
 
-    // Ora aggiorniamo tutti gli oggetti nella scena
+    // --------------------------------------------------------
+    // AGGIORNAMENTO GIOCO
+    // --------------------------------------------------------
     for(auto& entity : entities)
     {
         entity->update(*this);
@@ -112,7 +150,7 @@ void Scene::setDt(float dt)
 
 Player* Scene::getLocalPlayerInScene()
 {
-    std::vector<Player*> playersInScene = getPlayers();
+    auto playersInScene = getPlayers();
     for(auto& player : playersInScene)
     {
         if(player->isLocal())

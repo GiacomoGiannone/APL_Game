@@ -14,9 +14,12 @@ class Game
         static Game* instance;
         sf::RenderWindow* window;
         Game(sf::RenderWindow* window);
+        int localPlayerId;
 
     public:
         static Game* getInstance(sf::RenderWindow* window);
         void update(float dt);
         void setScene(Scene* newScene);
+        void setLocalPlayerId(int id);
+        int getLocalPlayerId() const;
 };

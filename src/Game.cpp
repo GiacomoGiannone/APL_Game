@@ -38,3 +38,11 @@ void Game::setScene(Scene* newScene)
 {
     currentScene = newScene;
 }
+
+void Game::setLocalPlayerId(int id) {
+    this->localPlayerId = id;
+}
+
+int Game::getLocalPlayerId() const {
+    return this->localPlayerId;
+}

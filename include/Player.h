@@ -36,7 +36,7 @@ class Player: public GameObject
         bool localPlayer;
 
         std::string playerName;
-        uint8_t id; // max 255 giocatori
+        int id; // max 255 giocatori
 
         void handle_input();
         void apply_gravity(float dt);
@@ -49,8 +49,8 @@ class Player: public GameObject
         void update(const Scene& scene) override;
         void draw(sf::RenderWindow &window) override;
         void syncFromNetwork(float x, float y, float velX, float velY, bool faceRight, bool grounded);
-        uint8_t getId() const;
-        void setId(uint8_t newId);
+        int getId() const;
+        void setId(int newId);
 
         enum class PlayerState
         {

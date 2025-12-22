@@ -13,6 +13,7 @@ class Scene
 private:
     std::vector<std::unique_ptr<GameObject>> entities;
     float dt;
+    int localPlayerId;
 
 public:
     Scene();
@@ -25,4 +26,8 @@ public:
     void update();
     void draw(sf::RenderWindow& window) const;
     Player* getLocalPlayerInScene();
+
+    void setLocalPlayerId(int id) { localPlayerId = id; }
+    int getLocalPlayerId() const { return localPlayerId; }
+    void addRemotePlayer(int id);
 };

@@ -90,12 +90,12 @@ Player::Player(std::string Folder, std::string playerName, bool localPlayer)
     updateCollider();
 }
 
-uint8_t Player::getId() const
+int Player::getId() const
 {
     return id;
 }
 
-void Player::setId(uint8_t newId)
+void Player::setId(int newId)
 {
     id = newId;
 }
@@ -316,7 +316,7 @@ void Player::update(const Scene& scene)
         if (localPlayer && NetworkClient::getInstance()->isConnected()) {
             PacketMove packet;
             packet.header.type = PacketType::MOVE;
-            packet.playerId = 1; // TODO: Sostituire con il vero ID assegnato al Login
+            packet.playerId = this->id;
             packet.x = sprite.getPosition().x;
             packet.y = sprite.getPosition().y;
             packet.velocityX = velocity.x;
@@ -354,8 +354,6 @@ void Player::syncFromNetwork(float x, float y, float velX, float velY, bool face
 
     sprite.setPosition(x, y); // Teletrasporto (più avanti si potrà fare interpolazione)
     velocity.x = velX;        // Serve per far funzionare updateAnimation()
-    //non chiamiamo mai update animation sui giocatori online?
-    //oppure chiamiamo moveX e moveY su di loro? e quindi la riga sopra, sprite.setPosition, non serve?
     velocity.y = velY;
     facingRight = faceRight;
     isGrounded = grounded;
