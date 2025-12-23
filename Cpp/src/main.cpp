@@ -72,9 +72,9 @@ int main()
             ));
         }
     };
-    createPlatform(100.0f, 500.0f, 40);
-    createPlatform(130.0f, 350.0f, 10);
-    createPlatform(520.0f, 350.0f, 10);
+    createPlatform(100.0f, 450.0f, 40);
+    createPlatform(130.0f, 325.0f, 10);
+    createPlatform(520.0f, 325.0f, 10);
     createPlatform(340.0f, 200.0f, 8);
 
     // Impostiamo la scena attiva nel gioco
