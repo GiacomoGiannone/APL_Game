@@ -1,27 +1,46 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="Dashboard.MainPage">
+             x:Class="Dashboard.MainPage"
+             BackgroundColor="#121212">
 
-    <Grid RowDefinitions="Auto, *" Padding="20">
+    <Grid RowDefinitions="Auto, *, 150" Padding="10" RowSpacing="10">
         
-        <VerticalStackLayout Grid.Row="0" Spacing="10">
-            <Label Text="APL Game Dashboard" FontSize="32" HorizontalOptions="Center" />
-            <Label Text="Stato: Disconnesso" x:Name="StatusLabel" HorizontalOptions="Center" TextColor="Gray"/>
-
-            <HorizontalStackLayout Spacing="10" HorizontalOptions="Center">
-                <Button Text="Connetti" Clicked="OnConnect" BackgroundColor="Gray"/>
-                <Button Text="Invia Move (Test)" Clicked="OnSendMove" BackgroundColor="Gray"/>
-            </HorizontalStackLayout>
-        </VerticalStackLayout>
-
-        <ScrollView Grid.Row="1" Margin="0,20,0,0" BackgroundColor="#1e1e1e">
-            <Label x:Name="LogLabel" 
-                   Text="In attesa di dati..." 
+        <HorizontalStackLayout Grid.Row="0" Spacing="20" HorizontalOptions="Center">
+            <Label Text="APL TACTICAL RADAR" 
+                   FontSize="20" 
+                   FontAttributes="Bold" 
                    TextColor="#00FF00" 
-                   FontFamily="Courier New"
-                   Padding="10"/>
-        </ScrollView>
+                   VerticalOptions="Center"/>
+            
+            <Button Text="CONNETTI" 
+                    Clicked="OnConnect" 
+                    BackgroundColor="#333" 
+                    TextColor="White"
+                    BorderColor="#00FF00"
+                    BorderWidth="1"/>
+            
+            <Label x:Name="StatusLabel" 
+                   Text="OFFLINE" 
+                   TextColor="Red" 
+                   VerticalOptions="Center"
+                   FontAttributes="Bold"/>
+        </HorizontalStackLayout>
+
+        <Border Grid.Row="1" Stroke="#00FF00" StrokeThickness="2" BackgroundColor="Black">
+            <GraphicsView x:Name="RadarView" />
+        </Border>
+
+        <Border Grid.Row="2" Stroke="Gray" StrokeThickness="1" BackgroundColor="#1e1e1e">
+            <ScrollView>
+                <Label x:Name="LogLabel" 
+                       Text="In attesa di segnale..." 
+                       TextColor="#AAAAAA" 
+                       FontFamily="Courier New" 
+                       FontSize="12"
+                       Padding="5"/>
+            </ScrollView>
+        </Border>
         
     </Grid>
 

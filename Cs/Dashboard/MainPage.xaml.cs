@@ -7,26 +7,27 @@ public partial class MainPage : ContentPage
 {
     private NetworkClient _client;
     
-    // MEMORIA: Mantiene lo stato attuale di tutti i giocatori
-    // La chiave è l'ID del player, il valore è una tupla (X, Y)
+    // I dati "vivi" dei giocatori
     private Dictionary<uint, (float X, float Y)> _playerPositions = new();
     
-    // TIMER: Per aggiornare la UI a intervalli regolari
     private IDispatcherTimer _uiTimer;
 
     public MainPage()
     {
         InitializeComponent();
-        _client = new NetworkClient();
         
-        // Setup eventi rete
-        _client.OnPacketReceived += HandlePacket;
-        _client.OnLog += (msg) => Console.WriteLine($"[NET] {msg}"); // Solo console, non intasiamo la UI
+        // 1. Configura il Radar
+        // Passiamo il riferimento del dizionario così la mappa sa cosa disegnare
+        RadarView.Drawable = new RadarMap(_playerPositions);
 
-        // Setup Timer UI (Aggiorna 10 volte al secondo = 100ms)
-        // Questo impedisce alla dashboard di freezarsi
+        // 2. Configura Rete
+        _client = new NetworkClient();
+        _client.OnPacketReceived += HandlePacket;
+        _client.OnLog += (msg) => Console.WriteLine($"[NET] {msg}");
+
+        // 3. Configura Timer (60 FPS circa per fluidità)
         _uiTimer = Dispatcher.CreateTimer();
-        _uiTimer.Interval = TimeSpan.FromMilliseconds(100);
+        _uiTimer.Interval = TimeSpan.FromMilliseconds(33); // ~30 FPS
         _uiTimer.Tick += OnUpdateUiTick;
         _uiTimer.Start();
     }
@@ -36,34 +37,29 @@ public partial class MainPage : ContentPage
         if (!_client.IsConnected)
         {
             await _client.ConnectAsync("127.0.0.1", 8080);
-            StatusLabel.Text = "Stato: Connesso ✅";
+            StatusLabel.Text = "ONLINE";
             StatusLabel.TextColor = Colors.Green;
         }
         else
         {
             _client.Disconnect();
-            StatusLabel.Text = "Stato: Disconnesso ❌";
+            StatusLabel.Text = "OFFLINE";
             StatusLabel.TextColor = Colors.Red;
             lock (_playerPositions) { _playerPositions.Clear(); }
         }
     }
 
-    private void OnSendMove(object? sender, EventArgs e)
-    {
-        // Placeholder per comandi futuri
-    }
+    // Nota: Il metodo OnSendMove è stato eliminato come richiesto.
 
-    // QUESTO METODO GIRA SUL THREAD DI RETE (VELOCISSIMO)
     private void HandlePacket(GamePacket packet)
     {
+        // Ricezione dati ad alta velocità (Thread Rete)
         if (packet.Type == PacketType.Move && packet.Data.Length >= 12)
         {
             uint id = BitConverter.ToUInt32(packet.Data, 0);
             float x = BitConverter.ToSingle(packet.Data, 4);
             float y = BitConverter.ToSingle(packet.Data, 8);
 
-            // Aggiorniamo solo la memoria (operazione istantanea)
-            // Usiamo il lock perché il timer della UI legge questa variabile contemporaneamente
             lock (_playerPositions)
             {
                 _playerPositions[id] = (x, y);
@@ -71,31 +67,36 @@ public partial class MainPage : ContentPage
         }
         else if (packet.Type == PacketType.PlayerJoined)
         {
-            // Loggare eventi rari va bene
+            // Loggare eventi rari va bene nel testo
             MainThread.BeginInvokeOnMainThread(() => 
-                LogLabel.Text = $"[{DateTime.Now:HH:mm:ss}] Nuovo Player connesso!\n" + LogLabel.Text);
+                LogLabel.Text = $"[{DateTime.Now:HH:mm:ss}] ⚠️ Rilevato nuovo segnale!\n" + LogLabel.Text);
         }
     }
 
-    // QUESTO METODO GIRA SUL THREAD PRINCIPALE (10 VOLTE AL SECONDO)
+    // Loop di rendering (Thread UI)
     private void OnUpdateUiTick(object? sender, EventArgs e)
     {
-        // Se non siamo connessi o non ci sono dati, non fare nulla
-        if (_playerPositions.Count == 0) return;
+        // 1. Ridisegna il Radar (chiama il metodo Draw di RadarMap)
+        RadarView.Invalidate();
 
-        var sb = new StringBuilder();
-        sb.AppendLine("--- STATO IN TEMPO REALE ---");
-
-        lock (_playerPositions)
+        // 2. Aggiorna il Log testuale (solo se ci sono dati)
+        if (_playerPositions.Count > 0)
         {
-            // Ordina per ID per evitare che saltino nella lista
-            foreach (var player in _playerPositions.OrderBy(p => p.Key))
+            var sb = new StringBuilder();
+            // Mostra solo le ultime info testuali per debug
+            sb.AppendLine("--- DATI TELEMETRICI ---");
+            lock (_playerPositions)
             {
-                sb.AppendLine($"👤 Player {player.Key}:  X: {player.Value.X:000.0}  |  Y: {player.Value.Y:000.0}");
+                foreach (var player in _playerPositions.OrderBy(p => p.Key))
+                {
+                    sb.AppendLine($"TGT {player.Key}: POS {player.Value.X:000.0}, {player.Value.Y:000.0}");
+                }
             }
+            // Aggiorna senza cancellare lo storico degli eventi importanti
+            // Nota: Se vuoi solo vedere i numeri che cambiano, usa sb.ToString()
+            // Se vuoi mantenere lo storico dei "PlayerJoined", dovremmo usare un'altra logica,
+            // ma per ora sovrascriviamo per pulizia come richiesto.
+            LogLabel.Text = sb.ToString(); 
         }
-
-        // Sovrascrivi il testo invece di appenderlo all'infinito
-        LogLabel.Text = sb.ToString();
     }
 }
