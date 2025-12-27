@@ -40,7 +40,7 @@ int main()
     // -----------------------------------------------------------
     sf::RenderWindow window(sf::VideoMode(800, 600), "Platformer Game");
     window.setVerticalSyncEnabled(true); 
-    window.setFramerateLimit(60);
+    window.setFramerateLimit(120);
 
     // Inizializza il Singleton Game
     Game* game = Game::getInstance(&window);

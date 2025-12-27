@@ -21,6 +21,7 @@ class Player: public GameObject
         sf::Texture idle_texture;
         std::vector<sf::Texture> jump_textures;
         sf::Texture falling_texture;
+        std::vector<sf::Texture> attack_textures;
 
         //we need to add a rectangle for the player collisions
         float colliderOffsetX;
@@ -34,17 +35,28 @@ class Player: public GameObject
         float speed, gravity;
         bool facingRight;
         bool localPlayer;
+        
+        // Attack animation state
+        bool isAttacking;
+        size_t attackFrame;
+        float attackTimer;
+        static constexpr float attackFrameDuration = 0.1f;
+        sf::FloatRect attackHitbox; // For debug drawing
+        float attackCooldownTimer;
+        static constexpr float attackCooldown = 0.5f; // Cooldown in seconds
 
         std::string playerName;
         std::string folder;
         int id; // max 255 giocatori
 
-        void handle_input();
+        void handle_input(const Scene& scene);
         void apply_gravity(float dt);
         void moveX(float dt, const std::vector<Block*>& blocks);
         void moveY(float dt, const std::vector<Block*>& blocks);
         void updateAnimation(float dt);
         void updateCollider();
+        void attack(const Scene& scene);
+        void setAttackAnimation();
     public:
         Player(std::string texturePathFolder, std::string playerName, bool localPlayer);
         void update(const Scene& scene) override;

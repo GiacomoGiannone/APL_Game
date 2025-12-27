@@ -9,7 +9,8 @@
 Player::Player(std::string Folder, std::string playerName, bool localPlayer)
     : velocity(0.0f, 0.0f), isGrounded(false), speed(200.0f), gravity(200.0f),
       current_animation_frame(0), animation_timer(0.1f), animation_speed(0.1f),
-      playerName(playerName), facingRight(true), localPlayer(localPlayer), folder(Folder)
+      playerName(playerName), facingRight(true), localPlayer(localPlayer), folder(Folder),
+      isAttacking(false), attackFrame(0), attackTimer(0.f), attackCooldownTimer(0.f)
 {
     // Carica texture idle
     std::string path_to_texture = "assets/pp1/" + Folder + "/metarig.004-0_0000.png";
@@ -51,6 +52,18 @@ Player::Player(std::string Folder, std::string playerName, bool localPlayer)
     {
         std::cerr << "Could not load falling texture from path " << path_to_texture << std::endl;
     }
+
+    //carica texture di attacco
+    if(!text.loadFromFile("assets/pp1/" + Folder + "/A1.png"))
+    {
+        std::cerr << "Could not load attack texture from path " << "assets/pp1/" + Folder + "/A1.png" << std::endl;
+    }
+    attack_textures.push_back(text);
+    if(!text.loadFromFile("assets/pp1/" + Folder + "/A2.png"))
+    {
+        std::cerr << "Could not load attack texture from path " << "assets/pp1/" + Folder + "/A2.png" << std::endl;
+    }
+    attack_textures.push_back(text);
     
     // Setup sprite
     sprite.setTexture(idle_texture);
@@ -101,7 +114,7 @@ void Player::setId(int newId)
     id = newId;
 }
 
-void Player::handle_input()
+void Player::handle_input(const Scene& scene)
 {
     if (!Game::getInstance()->hasFocus()) return;
 
@@ -124,6 +137,12 @@ void Player::handle_input()
         //we will adjust gravity later in the applyGravity function
         //if not the player would keep flying
         velocity.y = -250.0f;
+    }
+    //check left click for attack
+    if(sf::Mouse::isButtonPressed(sf::Mouse::Left) && attackCooldownTimer <= 0.f)
+    {
+        attack(scene);
+        attackCooldownTimer = attackCooldown; // Reset cooldown
     }
 }
 
@@ -200,9 +219,36 @@ void Player::moveY(float dt, const std::vector<Block*>& blocks)
 
 void Player::updateAnimation(float dt)
 {
-    // Cache
+    // Cache (moved before attack handling)
     static sf::Texture* lastTexture = nullptr;
     static bool lastFacingRight = true;
+    
+    // Handle attack animation first (priority over other animations)
+    if (isAttacking)
+    {
+        attackTimer += dt;
+        if (attackTimer >= attackFrameDuration)
+        {
+            attackTimer = 0.f;
+            attackFrame++;
+            if (attackFrame >= attack_textures.size())
+            {
+                // Attack animation finished, return to normal
+                isAttacking = false;
+                attackFrame = 0;
+                // Force cache invalidation so idle texture gets applied
+                lastTexture = nullptr;
+            }
+        }
+        
+        if (isAttacking) // Still attacking
+        {
+            sprite.setTexture(attack_textures[attackFrame]);
+            sprite.setTextureRect(sf::IntRect(41, 24, 40, 30));
+            sprite.setScale(facingRight ? 1.f : -1.f, 1.f);
+            return; // Don't process other animations
+        }
+    }
     
     // Determina texture
     sf::Texture* texture = &idle_texture;
@@ -272,6 +318,18 @@ bool Player::isLocal()
 void Player::draw(sf::RenderWindow &window) 
 {
     window.draw(sprite);
+    
+    // Draw attack hitbox when attacking
+    if (isAttacking)
+    {
+        sf::RectangleShape hitboxRect;
+        hitboxRect.setPosition(attackHitbox.left, attackHitbox.top);
+        hitboxRect.setSize(sf::Vector2f(attackHitbox.width, attackHitbox.height));
+        hitboxRect.setFillColor(sf::Color(255, 0, 0, 100));
+        hitboxRect.setOutlineColor(sf::Color::Red);
+        hitboxRect.setOutlineThickness(2.f);
+        window.draw(hitboxRect);
+    }
     /*
     // Disegna l'origine (punto rosso)
     sf::CircleShape originDot(3.f);
@@ -304,13 +362,61 @@ void Player::draw(sf::RenderWindow &window)
     window.draw(colliderRect);*/
 }
 
+void Player::attack(const Scene& scene)
+{
+    // Calculate attack hitbox position
+    attackHitbox.width = 20.f;
+    attackHitbox.height = 20.f;
+    if(facingRight)
+    {
+        attackHitbox.left = sprite.getPosition().x + collider.width / 2.f;
+        attackHitbox.top = sprite.getPosition().y - 10.f;
+    }
+    else
+    {
+        attackHitbox.left = sprite.getPosition().x - collider.width / 2.f - 20.f;
+        attackHitbox.top = sprite.getPosition().y - 10.f;
+    }
+
+    //we need to check if the attack hitbox intersects with any other entities in the scene
+    for(const auto& player : scene.getPlayers())
+    {
+        if(player->getId() != this->id) //don't attack yourself
+        {
+            if(attackHitbox.intersects(player->collider))
+            {
+                std::cout << "Player " << playerName << " attacked Player " << player->playerName << "!" << std::endl;
+                //here you can apply damage or any other effect to the attacked player
+            }
+        }
+    }
+    setAttackAnimation();
+}
+
+void Player::setAttackAnimation()
+{
+    // Start attack if not already attacking
+    if (!isAttacking)
+    {
+        isAttacking = true;
+        attackFrame = 0;
+        attackTimer = 0.f;
+    }
+}
+
 void Player::update(const Scene& scene) 
 {
     float dt = scene.getDt();
     auto blocks = scene.getBlocks();
     
+    // Update attack cooldown
+    if (attackCooldownTimer > 0.f)
+    {
+        attackCooldownTimer -= dt;
+    }
+    
     if (localPlayer) {
-        handle_input();
+        handle_input(scene);
         apply_gravity(scene.getDt());
         moveX(dt, blocks);
         moveY(dt, blocks);
@@ -356,6 +462,7 @@ void Player::syncFromNetwork(float x, float y, float velX, float velY, bool face
         return; // Per essere sicuri la funzione non venga chiamata sul player locale
 
     sprite.setPosition(x, y); // Teletrasporto (più avanti si potrà fare interpolazione)
+    updateCollider();         // IMPORTANTE: aggiorna il collider dopo aver spostato lo sprite!
     velocity.x = velX;        // Serve per far funzionare updateAnimation()
     velocity.y = velY;
     facingRight = faceRight;

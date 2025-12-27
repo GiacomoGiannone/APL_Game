@@ -25,4 +25,5 @@ class Game
         int getLocalPlayerId() const;
         void setFocus(bool focus);
         bool hasFocus() const;
+        sf::RenderWindow& getWindow() const;
 };

@@ -52,3 +52,7 @@ void Game::setFocus(bool focus) {
 bool Game::hasFocus() const {
     return this->isWindowFocused;
 }
+
+sf::RenderWindow& Game::getWindow() const {
+    return *window;
+}
