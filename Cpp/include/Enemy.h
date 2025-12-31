@@ -38,17 +38,17 @@ class Enemy : public Hittable
         static constexpr float attackFrameDuration = 0.15f;
         sf::FloatRect attackHitbox;
         float attackCooldownTimer;
-        static constexpr float attackCooldown = 1.5f;
+        float attackCooldown; // Random tra 1.0 e 2.5 secondi
 
         // AI
         float patrolTimer;
         float patrolDirection;
-        static constexpr float patrolChangeTime = 2.0f;
+        float patrolChangeTime; // Random tra 1.0 e 4.0 secondi
         
         // Player detection
         bool seesPlayer;
         float attackDelayTimer;
-        static constexpr float attackDelay = 0.5f;
+        float attackDelay; // Random tra 0.2 e 1.0 secondi
 
         // Network
         uint32_t enemyId;
@@ -79,6 +79,9 @@ class Enemy : public Hittable
         // Sync from network
         void syncFromNetwork(float x, float y, float velX, float velY, 
                              bool faceRight, bool grounded, bool attacking, float health);
+        
+        // Posizione iniziale
+        void setInitialPosition(float x, float y);
         
         // Getters for network sync
         sf::Vector2f getPosition() const { return sprite.getPosition(); }

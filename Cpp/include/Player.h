@@ -44,6 +44,10 @@ class Player: public Hittable
         sf::FloatRect attackHitbox; // For debug drawing
         float attackCooldownTimer;
         static constexpr float attackCooldown = 0.5f; // Cooldown in seconds
+        
+        // Animation cache (per-player, not static)
+        sf::Texture* lastTexture;
+        bool lastFacingRight;
 
         std::string playerName;
         std::string folder;
@@ -62,6 +66,11 @@ class Player: public Hittable
         void update(const Scene& scene) override;
         void draw(sf::RenderWindow &window) override;
         void syncFromNetwork(float x, float y, float velX, float velY, bool faceRight, bool grounded);
+        void respawn(); // Respawn del player locale
+        void triggerAttackAnimation(); // Attiva animazione attacco (per sync rete)
+        void takeDamage(float amount) override; // Override per sync rete
+        void syncDamageFromNetwork(float damage, float health); // Riceve danno dalla rete (player remoti)
+        void applyDamageFromHost(float damage); // Riceve danno dall'host (player locale)
         int getId() const;
         void setId(int newId);
         sf::FloatRect getBounds() const { return collider; }

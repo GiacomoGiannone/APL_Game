@@ -11,7 +11,8 @@ Player::Player(std::string Folder, std::string playerName, bool localPlayer)
     : Hittable(100.f), velocity(0.0f, 0.0f), isGrounded(false), speed(200.0f), gravity(200.0f),
       current_animation_frame(0), animation_timer(0.1f), animation_speed(0.1f),
       playerName(playerName), facingRight(true), localPlayer(localPlayer), folder(Folder),
-      isAttacking(false), attackFrame(0), attackTimer(0.f), attackCooldownTimer(0.f)
+      isAttacking(false), attackFrame(0), attackTimer(0.f), attackCooldownTimer(0.f),
+      lastTexture(nullptr), lastFacingRight(true)
 {
     // Carica texture idle
     std::string path_to_texture = "assets/pp1/" + Folder + "/Idle.png";
@@ -220,9 +221,7 @@ void Player::moveY(float dt, const std::vector<Block*>& blocks)
 
 void Player::updateAnimation(float dt)
 {
-    // Cache (moved before attack handling)
-    static sf::Texture* lastTexture = nullptr;
-    static bool lastFacingRight = true;
+    // Cache per ottimizzare cambi texture (non static, ogni player ha la sua)
     
     // Handle attack animation first (priority over other animations)
     if (isAttacking)
@@ -421,6 +420,21 @@ void Player::attack(const Scene& scene)
         attackHitbox.top = sprite.getPosition().y - 10.f;
     }
 
+    // Invia pacchetto attacco per sincronizzare l'animazione con gli altri client
+    if (NetworkClient::getInstance()->isConnected())
+    {
+        PacketPlayerAttack attackPacket;
+        attackPacket.header.type = PacketType::PLAYER_ATTACK;
+        attackPacket.header.packetSize = sizeof(PacketPlayerAttack);
+        attackPacket.playerId = this->id;
+        attackPacket.x = sprite.getPosition().x;
+        attackPacket.y = sprite.getPosition().y;
+        attackPacket.isFacingRight = facingRight ? 1 : 0;
+        memset(attackPacket.padding, 0, sizeof(attackPacket.padding));
+        
+        NetworkClient::getInstance()->sendPacket(attackPacket);
+    }
+
     //we need to check if the attack hitbox intersects with any other entities in the scene
     for(const auto& player : scene.getPlayers())
     {
@@ -514,20 +528,6 @@ void Player::update(const Scene& scene)
     }
     
     updateAnimation(dt);
-
-    //each 60 frames print all the info about the player
-    static int frameCounter = 0;
-    frameCounter++;
-    if(frameCounter >= 60)
-    {
-        frameCounter = 0;
-        std::cout << "Player: " << playerName << " Position: (" << sprite.getPosition().x << ", " 
-                    << sprite.getPosition().y << ") Velocity: (" << velocity.x << ", " << velocity.y << ") "  << std::endl;
-        if(isGrounded)
-            std::cout << "isGrounded" << std::endl;
-        else   
-            std::cout << "NotGrounded" << std::endl;
-    }
 }
 
 // Sincronizza lo stato (la posizione, la velocità, ecc.) dei giocatori remoti dai dati di rete ricevuti
@@ -543,4 +543,107 @@ void Player::syncFromNetwork(float x, float y, float velX, float velY, bool face
     velocity.y = velY;
     facingRight = faceRight;
     isGrounded = grounded;
+}
+
+// Respawn del player locale alla posizione iniziale
+void Player::respawn()
+{
+    // Reset posizione
+    sprite.setPosition(100.f, 100.f);
+    updateCollider();
+    
+    // Reset velocità
+    velocity.x = 0.f;
+    velocity.y = 0.f;
+    
+    // Reset stato
+    facingRight = true;
+    isGrounded = false;
+    isAttacking = false;
+    attackFrame = 0;
+    attackTimer = 0.f;
+    attackCooldownTimer = 0.f;
+    
+    // Reset rotazione sprite (era ruotato durante la morte)
+    sprite.setRotation(0.f);
+    
+    // Reset colore sprite (era fadato durante la morte)
+    sprite.setColor(sf::Color::White);
+    
+    // Reset texture all'idle
+    sprite.setTexture(idle_texture);
+    sprite.setTextureRect(sf::IntRect(41, 24, 15, 30));
+    sprite.setOrigin(15.f / 2.f, 30.f / 2.f);
+    
+    std::cout << "Player respawnato!" << std::endl;
+}
+
+// Attiva l'animazione di attacco (chiamato dalla rete per player remoti)
+void Player::triggerAttackAnimation()
+{
+    setAttackAnimation();
+}
+
+// Override di takeDamage per inviare il danno via rete
+void Player::takeDamage(float amount)
+{
+    if (dead || dying) return;
+    
+    // Applica il danno localmente
+    currentHealth -= amount;
+    std::cout << "[DANNO] Player " << id << " (" << playerName << ") - Salute: " << currentHealth << "/" << maxHealth << std::endl;
+    
+    if (currentHealth <= 0.f)
+    {
+        currentHealth = 0.f;
+        dying = true;
+        onDeath();
+    }
+    
+    // Se siamo il player locale, invia il danno agli altri client
+    if (localPlayer && NetworkClient::getInstance()->isConnected())
+    {
+        PacketPlayerDamage damagePacket;
+        damagePacket.header.type = PacketType::PLAYER_DAMAGE;
+        damagePacket.header.packetSize = sizeof(PacketPlayerDamage);
+        damagePacket.playerId = this->id;
+        damagePacket.damage = amount;
+        damagePacket.currentHealth = currentHealth;
+        
+        NetworkClient::getInstance()->sendPacket(damagePacket);
+    }
+}
+
+// Riceve danno sincronizzato dalla rete (per player remoti)
+void Player::syncDamageFromNetwork(float damage, float health)
+{
+    if (localPlayer) return; // Non applicare a noi stessi
+    
+    currentHealth = health;
+    std::cout << "[DANNO REMOTO] Player " << id << " - Salute: " << currentHealth << "/" << maxHealth << std::endl;
+    
+    if (currentHealth <= 0.f && !dying)
+    {
+        currentHealth = 0.f;
+        dying = true;
+        onDeath();
+    }
+}
+
+// Applica danno ricevuto dall'host (per il player locale, senza re-inviare)
+void Player::applyDamageFromHost(float damage)
+{
+    if (dead || dying) return;
+    
+    currentHealth -= damage;
+    std::cout << "[DANNO DA HOST] Player " << id << " (" << playerName << ") - Salute: " << currentHealth << "/" << maxHealth << std::endl;
+    
+    if (currentHealth <= 0.f)
+    {
+        currentHealth = 0.f;
+        dying = true;
+        onDeath();
+    }
+    
+    // NON inviamo pacchetto - l'host ce l'ha già detto lui
 }

@@ -6,11 +6,14 @@ import (
 	"io"
 	"net"
 	"sync"
+	"time"
 )
 
 // Configurazione
 const (
-	PORT = ":8080"
+	PORT               = ":8080"
+	LAN_DISCOVERY_PORT = 8888
+	SERVER_NAME        = "APL Game Server"
 )
 
 // Tipi di pacchetti (deve corrispondere a C++)
@@ -22,6 +25,9 @@ const (
 	PACKET_ENEMY_UPDATE        = 5
 	PACKET_ENEMY_DAMAGE        = 6
 	PACKET_ENEMY_DEATH         = 7
+	PACKET_PLAYER_ATTACK       = 8
+	PACKET_HOST_ANNOUNCE       = 9
+	PACKET_PLAYER_DAMAGE       = 10
 )
 
 // Struttura Client: rappresenta un giocatore connesso
@@ -45,6 +51,9 @@ type PacketHeader struct {
 }
 
 func main() {
+	// 0. Avvia il broadcast LAN per la scoperta automatica
+	go startLANDiscoveryBroadcast()
+
 	// 1. Iniziamo ad ascoltare sulla porta TCP
 	listener, err := net.Listen("tcp", PORT)
 	if err != nil {
@@ -52,6 +61,7 @@ func main() {
 		return
 	}
 	fmt.Printf("🚀 Server Go avviato su porta %s\n", PORT)
+	fmt.Printf("📡 LAN Discovery attivo sulla porta UDP %d\n", LAN_DISCOVERY_PORT)
 
 	// 2. Loop infinito: accetta nuove connessioni
 	for {
@@ -66,6 +76,98 @@ func main() {
 	}
 }
 
+// Broadcast LAN per permettere ai client di trovare il server automaticamente
+func startLANDiscoveryBroadcast() {
+	// Prepara il pacchetto di annuncio
+	// Formato: 4 byte magic ('APLG') + 2 byte porta + 32 byte nome server
+	announcement := make([]byte, 38)
+	copy(announcement[0:4], []byte("APLG"))                // Magic number
+	binary.LittleEndian.PutUint16(announcement[4:6], 8080) // Porta del server TCP
+	copy(announcement[6:38], []byte(SERVER_NAME))          // Nome server (32 byte max)
+
+	// Ottieni tutti gli indirizzi broadcast delle interfacce di rete
+	broadcastAddrs := getBroadcastAddresses()
+	if len(broadcastAddrs) == 0 {
+		fmt.Println("⚠️ Nessun indirizzo broadcast trovato, uso 255.255.255.255")
+		broadcastAddrs = append(broadcastAddrs, "255.255.255.255")
+	}
+
+	fmt.Printf("📡 Broadcast LAN avviato su: %v\n", broadcastAddrs)
+
+	// Loop infinito: manda broadcast ogni 2 secondi
+	for {
+		for _, addr := range broadcastAddrs {
+			conn, err := net.DialUDP("udp4", nil, &net.UDPAddr{
+				IP:   net.ParseIP(addr),
+				Port: LAN_DISCOVERY_PORT,
+			})
+			if err != nil {
+				continue
+			}
+			conn.Write(announcement)
+			conn.Close()
+		}
+		time.Sleep(2 * time.Second)
+	}
+}
+
+// Ottieni gli indirizzi broadcast di tutte le interfacce di rete
+func getBroadcastAddresses() []string {
+	var broadcasts []string
+
+	interfaces, err := net.Interfaces()
+	if err != nil {
+		return broadcasts
+	}
+
+	for _, iface := range interfaces {
+		// Salta interfacce down o loopback
+		if iface.Flags&net.FlagUp == 0 || iface.Flags&net.FlagLoopback != 0 {
+			continue
+		}
+
+		addrs, err := iface.Addrs()
+		if err != nil {
+			continue
+		}
+
+		for _, addr := range addrs {
+			ipNet, ok := addr.(*net.IPNet)
+			if !ok {
+				continue
+			}
+
+			ip := ipNet.IP.To4()
+			if ip == nil {
+				continue // Salta IPv6
+			}
+
+			// Calcola l'indirizzo broadcast: IP | ~Mask
+			mask := ipNet.Mask
+			broadcast := make(net.IP, 4)
+			for i := 0; i < 4; i++ {
+				broadcast[i] = ip[i] | ^mask[i]
+			}
+
+			broadcastStr := broadcast.String()
+			// Evita duplicati
+			found := false
+			for _, b := range broadcasts {
+				if b == broadcastStr {
+					found = true
+					break
+				}
+			}
+			if !found {
+				broadcasts = append(broadcasts, broadcastStr)
+				fmt.Printf("   - Interfaccia %s: broadcast %s\n", iface.Name, broadcastStr)
+			}
+		}
+	}
+
+	return broadcasts
+}
+
 func handleClient(conn net.Conn) {
 	// Assegna un ID al nuovo client
 	clientsMu.Lock() //Proteggiamo la mappa clients prima di scriverci dentro
@@ -76,6 +178,15 @@ func handleClient(conn net.Conn) {
 	clientsMu.Unlock()
 
 	fmt.Printf("➕ Nuovo Giocatore Connesso: ID %d (%s)\n", id, conn.RemoteAddr())
+
+	// Invia al client il suo ID assegnato dal server
+	// Pacchetto: Header (8 byte) + playerId (4 byte)
+	welcomePacket := make([]byte, 12)
+	binary.LittleEndian.PutUint32(welcomePacket[0:4], PACKET_LOGIN) // type
+	binary.LittleEndian.PutUint32(welcomePacket[4:8], 12)           // size
+	binary.LittleEndian.PutUint32(welcomePacket[8:12], id)          // playerId assegnato
+	conn.Write(welcomePacket)
+	fmt.Printf("   Inviato ID %d al client\n", id)
 
 	// Assicurati di rimuovere il client quando la funzione finisce (disconnessione)
 	defer func() {
@@ -123,15 +234,16 @@ func handleClient(conn net.Conn) {
 			binary.LittleEndian.PutUint32(body[0:4], id)
 		}
 
-		// Gestione pacchetti nemici
-		if header.Type == PACKET_ENEMY_UPDATE {
-			// Inoltra aggiornamento nemico a tutti gli altri client
-			fmt.Printf("👾 Enemy Update ricevuto da ID %d\n", id)
+		// Forza l'ID anche per PLAYER_ATTACK (il playerId è il primo campo del body)
+		if header.Type == PACKET_PLAYER_ATTACK {
+			binary.LittleEndian.PutUint32(body[0:4], id)
+			fmt.Printf("⚔️ PLAYER_ATTACK da ID %d inoltrato\n", id)
 		}
 
-		if header.Type == PACKET_ENEMY_DAMAGE {
-			// Inoltra danno nemico a tutti gli altri client
-			fmt.Printf("⚔️ Enemy Damage ricevuto da ID %d\n", id)
+		// NON sovrascrivere l'ID per PLAYER_DAMAGE - l'ID è del player che subisce danno, non del mittente
+		if header.Type == PACKET_PLAYER_DAMAGE {
+			targetId := binary.LittleEndian.Uint32(body[0:4])
+			fmt.Printf("💔 PLAYER_DAMAGE per player %d (inviato da %d)\n", targetId, id)
 		}
 
 		// E. INOLTRO (Broadcasting)
@@ -144,7 +256,12 @@ func handleClient(conn net.Conn) {
 		// Copia il body
 		copy(fullPacket[8:], body)
 
-		broadcast(fullPacket, id)
+		// PLAYER_DAMAGE va inviato a TUTTI (incluso il mittente) così l'host aggiorna il player remoto
+		if header.Type == PACKET_PLAYER_DAMAGE {
+			broadcastToAll(fullPacket)
+		} else {
+			broadcast(fullPacket, id)
+		}
 	}
 }
 
@@ -160,6 +277,19 @@ func broadcast(data []byte, senderID uint32) {
 			if err != nil {
 				fmt.Printf("Errore invio a ID %d\n", id)
 			}
+		}
+	}
+}
+
+// Invia il pacchetto a TUTTI i client (incluso il mittente)
+func broadcastToAll(data []byte) {
+	clientsMu.Lock()
+	defer clientsMu.Unlock()
+
+	for id, client := range clients {
+		_, err := client.conn.Write(data)
+		if err != nil {
+			fmt.Printf("Errore invio a ID %d\n", id)
 		}
 	}
 }

@@ -46,6 +46,15 @@ public:
         }
     }
 
+    // Resetta completamente la salute (per respawn)
+    virtual void resetHealth()
+    {
+        currentHealth = maxHealth;
+        dead = false;
+        dying = false;
+        deathTimer = 0.f;
+    }
+
     // Chiama questo nel update() delle classi derivate
     // Ritorna true se l'entità deve essere rimossa
     bool updateDeath(float dt)

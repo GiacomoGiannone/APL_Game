@@ -7,10 +7,13 @@ enum PacketType : uint32_t
     LOGIN = 1,
     MOVE = 2,
     PLAYER_DISCONNECTED = 3,
-    ENEMY_SPAWN = 4,      // Server dice ai client di spawnare un nemico
-    ENEMY_UPDATE = 5,     // Aggiornamento posizione/stato nemico
+    ENEMY_SPAWN = 4,      // Host dice ai client di spawnare un nemico
+    ENEMY_UPDATE = 5,     // Aggiornamento posizione/stato nemico (solo da host)
     ENEMY_DAMAGE = 6,     // Un player ha colpito un nemico
-    ENEMY_DEATH = 7       // Un nemico è morto
+    ENEMY_DEATH = 7,      // Un nemico è morto
+    PLAYER_ATTACK = 8,    // Un player sta attaccando
+    HOST_ANNOUNCE = 9,    // Annuncio dell'host (chi controlla i nemici)
+    PLAYER_DAMAGE = 10    // Un player ha subito danno
 };
 
 // Disabilita il padding automatico del compilatore (fondamentale per comunicare con Go!)
@@ -64,9 +67,10 @@ struct PacketEnemyUpdate
     float y;
     float velocityX;
     float velocityY;
-    bool isFacingRight;
-    bool isGrounded;
-    bool isAttacking;
+    uint8_t isFacingRight;  // bool -> uint8_t per allineamento
+    uint8_t isGrounded;
+    uint8_t isAttacking;
+    uint8_t padding;        // Padding esplicito
     float currentHealth;
 };
 
@@ -84,6 +88,33 @@ struct PacketEnemyDeath
 {
     PacketHeader header;
     uint32_t enemyId;    // Quale nemico è morto
+};
+
+// 8. Pacchetto Attacco Player
+struct PacketPlayerAttack
+{
+    PacketHeader header;
+    uint32_t playerId;     // Chi sta attaccando
+    float x;               // Posizione dell'attacco
+    float y;
+    uint8_t isFacingRight; // bool -> uint8_t per allineamento
+    uint8_t padding[3];    // Padding esplicito per allineamento a 4 byte
+};
+
+// 9. Pacchetto Annuncio Host (chi controlla i nemici)
+struct PacketHostAnnounce
+{
+    PacketHeader header;
+    uint32_t hostPlayerId; // ID del player che è l'host
+};
+
+// 10. Pacchetto Danno Player (sincronizza danni subiti)
+struct PacketPlayerDamage
+{
+    PacketHeader header;
+    uint32_t playerId;     // Chi ha subito danno
+    float damage;          // Quanto danno
+    float currentHealth;   // Salute attuale dopo il danno
 };
 
 #pragma pack(pop) // Riabilita il padding normale

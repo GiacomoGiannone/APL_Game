@@ -15,6 +15,7 @@ private:
     std::vector<std::unique_ptr<GameObject>> entities;
     float dt;
     int localPlayerId;
+    bool isHost;  // True se siamo l'host
 
 public:
     Scene();
@@ -31,5 +32,9 @@ public:
 
     void setLocalPlayerId(int id) { localPlayerId = id; }
     int getLocalPlayerId() const { return localPlayerId; }
+    void setIsHost(bool host) { isHost = host; }
+    bool getIsHost() const { return isHost; }
     void addRemotePlayer(int id);
+    void removeAllEnemies();
+    void respawnLocalPlayer();
 };

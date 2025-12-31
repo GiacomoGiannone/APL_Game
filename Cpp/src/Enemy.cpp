@@ -6,6 +6,12 @@
 #include "NetMessages.h"
 #include <iostream>
 #include <cmath>
+#include <cstdlib>
+
+// Helper per generare float random in un range
+static float randomFloat(float min, float max) {
+    return min + static_cast<float>(std::rand()) / (static_cast<float>(RAND_MAX / (max - min)));
+}
 
 Enemy::Enemy(std::string Folder, uint32_t id, bool localControl)
     : Hittable(50.f), velocity(0.0f, 0.0f), isGrounded(false), speed(80.0f), gravity(200.0f),
@@ -14,6 +20,12 @@ Enemy::Enemy(std::string Folder, uint32_t id, bool localControl)
       attackCooldownTimer(0.f), patrolTimer(0.f), patrolDirection(1.f),
       seesPlayer(false), attackDelayTimer(0.f), enemyId(id), isLocallyControlled(localControl)
 {
+    // Tempi randomici per ogni nemico
+    patrolChangeTime = randomFloat(1.0f, 4.0f);   // Tempo tra cambi direzione
+    attackDelay = randomFloat(0.2f, 1.0f);        // Tempo prima di attaccare
+    attackCooldown = randomFloat(1.0f, 2.5f);     // Cooldown tra attacchi
+    speed = randomFloat(60.0f, 120.0f);           // Velocità movimento
+    
     sf::Texture texture;
     std::string path_to_folder = "assets/pp1/" + Folder + "/";  
     //load idle texture
@@ -151,23 +163,34 @@ void Enemy::updateAI(float dt, const Scene& scene)
         attackCooldownTimer -= dt;
     }
     
-    // Controlla se ci sono player vicini
+    // Controlla se ci sono player vicini (TUTTI i player, non solo il locale)
     seesPlayer = false;
+    Player* nearestPlayer = nullptr;
+    float nearestDistance = 999999.f;
+    
     for(const auto& player : scene.getPlayers())
     {
-        if(player->isLocal())
+        // Ignora player morti
+        if(player->isDead()) continue;
+        
+        float distance = std::abs(sprite.getPosition().x - player->getBounds().left);
+        float yDistance = std::abs(sprite.getPosition().y - player->getBounds().top);
+        
+        if(distance < 60.f && yDistance < 30.f)
         {
-            float distance = std::abs(sprite.getPosition().x - player->getBounds().left);
-            float yDistance = std::abs(sprite.getPosition().y - player->getBounds().top);
-            
-            if(distance < 60.f && yDistance < 30.f)
+            if(distance < nearestDistance)
             {
+                nearestDistance = distance;
+                nearestPlayer = player;
                 seesPlayer = true;
-                // Gira verso il player
-                facingRight = (player->getBounds().left > sprite.getPosition().x);
-                break;
             }
         }
+    }
+    
+    // Gira verso il player più vicino
+    if(nearestPlayer)
+    {
+        facingRight = (nearestPlayer->getBounds().left > sprite.getPosition().x);
     }
     
     if(seesPlayer)
@@ -301,8 +324,24 @@ void Enemy::attack(const Scene& scene)
     {
         if(attackHitbox.intersects(player->getBounds()))
         {
-            std::cout << "Enemy attacked a Player!" << std::endl;
-            player->takeDamage(10.f);
+            // Se il player è locale, applica danno direttamente
+            if (player->isLocal())
+            {
+                player->takeDamage(10.f);
+            }
+            else if (isLocallyControlled && NetworkClient::getInstance()->isConnected())
+            {
+                // Se siamo l'host e il player è remoto, invia pacchetto danno
+                // Il client riceverà e applicherà il danno
+                PacketPlayerDamage damagePacket;
+                damagePacket.header.type = PacketType::PLAYER_DAMAGE;
+                damagePacket.header.packetSize = sizeof(PacketPlayerDamage);
+                damagePacket.playerId = player->getId();
+                damagePacket.damage = 10.f;
+                damagePacket.currentHealth = player->getHealth() - 10.f; // Stima
+                
+                NetworkClient::getInstance()->sendPacket(damagePacket);
+            }
         }
     }
     
@@ -357,9 +396,10 @@ void Enemy::update(const Scene& scene)
         packet.y = sprite.getPosition().y;
         packet.velocityX = velocity.x;
         packet.velocityY = velocity.y;
-        packet.isFacingRight = facingRight;
-        packet.isGrounded = isGrounded;
-        packet.isAttacking = isAttacking;
+        packet.isFacingRight = facingRight ? 1 : 0;
+        packet.isGrounded = isGrounded ? 1 : 0;
+        packet.isAttacking = isAttacking ? 1 : 0;
+        packet.padding = 0;
         packet.currentHealth = currentHealth;
         
         NetworkClient::getInstance()->sendPacket(packet);
@@ -451,4 +491,10 @@ void Enemy::syncFromNetwork(float x, float y, float velX, float velY,
         dying = true;
         onDeath();
     }
+}
+
+void Enemy::setInitialPosition(float x, float y)
+{
+    sprite.setPosition(x, y);
+    updateCollider();
 }
