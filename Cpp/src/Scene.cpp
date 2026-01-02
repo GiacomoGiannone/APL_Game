@@ -73,6 +73,32 @@ void Scene::addRemotePlayer(int id)
     std::cout << "🌐 Connesso nuovo giocatore remoto: ID " << id << std::endl;
 }
 
+void Scene::removePlayer(uint32_t playerId)
+{
+    // Non rimuovere mai il player locale
+    if (playerId == static_cast<uint32_t>(localPlayerId))
+    {
+        std::cout << "⚠️ Tentativo di rimuovere il player locale ignorato" << std::endl;
+        return;
+    }
+    
+    // Cerca e rimuovi il player con l'ID specificato
+    auto it = std::remove_if(entities.begin(), entities.end(),
+        [playerId](const std::unique_ptr<GameObject>& entity) {
+            if (Player* player = dynamic_cast<Player*>(entity.get()))
+            {
+                if (player->getId() == playerId)
+                {
+                    std::cout << "👋 Rimosso giocatore disconnesso: ID " << playerId << std::endl;
+                    return true;
+                }
+            }
+            return false;
+        });
+    
+    entities.erase(it, entities.end());
+}
+
 void Scene::update()
 {
     // --------------------------------------------------------
@@ -112,6 +138,19 @@ void Scene::update()
             
             // Aggiorna nel Game
             Game::getInstance()->setLocalPlayerId(serverAssignedId);
+            
+            continue;
+        }
+
+        // Pacchetto PLAYER_DISCONNECTED: un giocatore si è disconnesso
+        if (header.type == PacketType::PLAYER_DISCONNECTED)
+        {
+            uint32_t disconnectedPlayerId;
+            if (NetworkClient::getInstance()->receive(&disconnectedPlayerId, sizeof(disconnectedPlayerId), received) != sf::Socket::Done)
+                break;
+            
+            std::cout << "📤 Player " << disconnectedPlayerId << " si è disconnesso" << std::endl;
+            removePlayer(disconnectedPlayerId);
             
             continue;
         }

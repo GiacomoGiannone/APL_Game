@@ -28,12 +28,19 @@ const (
 	PACKET_PLAYER_ATTACK       = 8
 	PACKET_HOST_ANNOUNCE       = 9
 	PACKET_PLAYER_DAMAGE       = 10
+
+	// Comandi Admin (100+)
+	PACKET_ADMIN_KICK        = 100
+	PACKET_ADMIN_BAN         = 101
+	PACKET_ADMIN_MESSAGE     = 102
+	PACKET_ADMIN_SPAWN_ENEMY = 103
 )
 
 // Struttura Client: rappresenta un giocatore connesso
 type Client struct {
 	conn net.Conn
 	id   uint32
+	ip   string // IP per ban
 }
 
 // Stato globale del server
@@ -41,6 +48,10 @@ var (
 	clients   = make(map[uint32]*Client)     // Mappa di tutti i client connessi
 	clientsMu sync.Mutex                     // Mutex per evitare crash quando due goroutine scrivono sulla mappa
 	nextID    uint32                     = 1 // Contatore per assegnare ID univoci
+
+	// Lista IP bannati (persistente in memoria, si resetta al riavvio)
+	bannedIPs   = make(map[string]bool)
+	bannedIPsMu sync.Mutex
 )
 
 // HEADER: Deve essere identico alla struct C++ PacketHeader
@@ -169,11 +180,29 @@ func getBroadcastAddresses() []string {
 }
 
 func handleClient(conn net.Conn) {
+	// Estrai l'IP del client (senza porta)
+	clientAddr := conn.RemoteAddr().String()
+	clientIP := clientAddr
+	if host, _, err := net.SplitHostPort(clientAddr); err == nil {
+		clientIP = host
+	}
+
+	// Controlla se l'IP è bannato
+	bannedIPsMu.Lock()
+	isBanned := bannedIPs[clientIP]
+	bannedIPsMu.Unlock()
+
+	if isBanned {
+		fmt.Printf("🚫 Connessione RIFIUTATA - IP bannato: %s\n", clientIP)
+		conn.Close()
+		return
+	}
+
 	// Assegna un ID al nuovo client
 	clientsMu.Lock() //Proteggiamo la mappa clients prima di scriverci dentro
 	id := nextID
 	nextID++
-	client := &Client{conn: conn, id: id}
+	client := &Client{conn: conn, id: id, ip: clientIP}
 	clients[id] = client
 	clientsMu.Unlock()
 
@@ -195,6 +224,9 @@ func handleClient(conn net.Conn) {
 		clientsMu.Unlock()
 		conn.Close()
 		fmt.Printf("➖ Giocatore Disconnesso: ID %d\n", id)
+
+		// Notifica tutti della disconnessione
+		broadcastPlayerDisconnected(id)
 	}()
 
 	// 4. Loop di lettura messaggi dal client
@@ -246,6 +278,21 @@ func handleClient(conn net.Conn) {
 			fmt.Printf("💔 PLAYER_DAMAGE per player %d (inviato da %d)\n", targetId, id)
 		}
 
+		// COMANDI ADMIN
+		if header.Type == PACKET_ADMIN_KICK && len(body) >= 4 {
+			targetId := binary.LittleEndian.Uint32(body[0:4])
+			fmt.Printf("⚠️ ADMIN KICK richiesto per Player %d (da ID %d)\n", targetId, id)
+			kickPlayer(targetId)
+			continue // Non inoltrare il comando
+		}
+
+		if header.Type == PACKET_ADMIN_BAN && len(body) >= 4 {
+			targetId := binary.LittleEndian.Uint32(body[0:4])
+			fmt.Printf("🚫 ADMIN BAN richiesto per Player %d (da ID %d)\n", targetId, id)
+			banPlayer(targetId)
+			continue // Non inoltrare il comando
+		}
+
 		// E. INOLTRO (Broadcasting)
 		// Ricostruiamo il pacchetto completo (Header + Body) per mandarlo agli altri
 		fullPacket := make([]byte, header.PacketSize)
@@ -291,5 +338,47 @@ func broadcastToAll(data []byte) {
 		if err != nil {
 			fmt.Printf("Errore invio a ID %d\n", id)
 		}
+	}
+}
+
+// Notifica tutti che un player si è disconnesso
+func broadcastPlayerDisconnected(playerId uint32) {
+	packet := make([]byte, 12)
+	binary.LittleEndian.PutUint32(packet[0:4], PACKET_PLAYER_DISCONNECTED)
+	binary.LittleEndian.PutUint32(packet[4:8], 12)
+	binary.LittleEndian.PutUint32(packet[8:12], playerId)
+	broadcastToAll(packet)
+}
+
+// Kicka un player (disconnessione forzata)
+func kickPlayer(targetId uint32) {
+	clientsMu.Lock()
+	client, exists := clients[targetId]
+	clientsMu.Unlock()
+
+	if exists {
+		fmt.Printf("⚠️ KICK: Disconnetto Player %d\n", targetId)
+		client.conn.Close() // La chiusura triggererà il defer che rimuove dalla mappa
+	} else {
+		fmt.Printf("⚠️ KICK: Player %d non trovato\n", targetId)
+	}
+}
+
+// Banna un player (kicka + aggiunge IP alla blacklist)
+func banPlayer(targetId uint32) {
+	clientsMu.Lock()
+	client, exists := clients[targetId]
+	clientsMu.Unlock()
+
+	if exists {
+		// Aggiungi l'IP alla blacklist
+		bannedIPsMu.Lock()
+		bannedIPs[client.ip] = true
+		bannedIPsMu.Unlock()
+
+		fmt.Printf("🚫 BAN: Player %d (IP: %s) bannato!\n", targetId, client.ip)
+		client.conn.Close()
+	} else {
+		fmt.Printf("🚫 BAN: Player %d non trovato\n", targetId)
 	}
 }

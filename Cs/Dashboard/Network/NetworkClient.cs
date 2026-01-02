@@ -113,4 +113,25 @@ public class NetworkClient
         
         OnLog?.Invoke("🔌 Disconnesso");
     }
+    
+    // Invia un pacchetto al server
+    public async Task<bool> SendAsync(byte[] data)
+    {
+        if (_stream == null || !IsConnected)
+        {
+            OnLog?.Invoke("❌ Impossibile inviare: non connesso");
+            return false;
+        }
+        
+        try
+        {
+            await _stream.WriteAsync(data, 0, data.Length);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            OnLog?.Invoke($"❌ Errore invio: {ex.Message}");
+            return false;
+        }
+    }
 }

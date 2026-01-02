@@ -4,43 +4,110 @@
              x:Class="Dashboard.MainPage"
              BackgroundColor="#121212">
 
-    <Grid RowDefinitions="Auto, *, 150" Padding="10" RowSpacing="10">
+    <Grid ColumnDefinitions="*, 280" Padding="10" ColumnSpacing="10">
         
-        <HorizontalStackLayout Grid.Row="0" Spacing="20" HorizontalOptions="Center">
-            <Label Text="APL TACTICAL RADAR" 
-                   FontSize="20" 
+        <!-- COLONNA SINISTRA: Radar e Log -->
+        <Grid Grid.Column="0" RowDefinitions="Auto, *, 120" RowSpacing="10">
+            
+            <!-- Header -->
+            <HorizontalStackLayout Grid.Row="0" Spacing="20" HorizontalOptions="Center">
+                <Label Text="🎮 APL ADMIN DASHBOARD" 
+                       FontSize="22" 
+                       FontAttributes="Bold" 
+                       TextColor="#00FF00" 
+                       VerticalOptions="Center"/>
+                
+                <Button Text="CONNETTI" 
+                        Clicked="OnConnect" 
+                        BackgroundColor="#333" 
+                        TextColor="White"
+                        BorderColor="#00FF00"
+                        BorderWidth="1"/>
+                
+                <Label x:Name="StatusLabel" 
+                       Text="OFFLINE" 
+                       TextColor="Red" 
+                       VerticalOptions="Center"
+                       FontAttributes="Bold"/>
+                       
+                <Label x:Name="PlayerCountLabel" 
+                       Text="Giocatori: 0" 
+                       TextColor="#888" 
+                       VerticalOptions="Center"/>
+            </HorizontalStackLayout>
+
+            <!-- Radar -->
+            <Border Grid.Row="1" Stroke="#00FF00" StrokeThickness="2" BackgroundColor="Black">
+                <GraphicsView x:Name="RadarView" />
+            </Border>
+
+            <!-- Log -->
+            <Border Grid.Row="2" Stroke="Gray" StrokeThickness="1" BackgroundColor="#1e1e1e">
+                <ScrollView>
+                    <Label x:Name="LogLabel" 
+                           Text="In attesa di connessione..." 
+                           TextColor="#AAAAAA" 
+                           FontFamily="Courier New" 
+                           FontSize="11"
+                           Padding="5"/>
+                </ScrollView>
+            </Border>
+        </Grid>
+        
+        <!-- COLONNA DESTRA: Pannello Admin -->
+        <Grid Grid.Column="1" RowDefinitions="Auto, *, Auto" RowSpacing="10">
+            
+            <!-- Titolo Pannello -->
+            <Label Grid.Row="0" 
+                   Text="👑 PANNELLO ADMIN" 
+                   FontSize="16" 
                    FontAttributes="Bold" 
-                   TextColor="#00FF00" 
-                   VerticalOptions="Center"/>
+                   TextColor="#FFD700" 
+                   HorizontalOptions="Center"/>
             
-            <Button Text="CONNETTI" 
-                    Clicked="OnConnect" 
-                    BackgroundColor="#333" 
-                    TextColor="White"
-                    BorderColor="#00FF00"
-                    BorderWidth="1"/>
+            <!-- Lista Giocatori -->
+            <Border Grid.Row="1" Stroke="#444" StrokeThickness="1" BackgroundColor="#1a1a1a">
+                <ScrollView>
+                    <VerticalStackLayout x:Name="PlayerListPanel" Spacing="5" Padding="5">
+                        <Label Text="Nessun giocatore connesso" 
+                               TextColor="#666" 
+                               HorizontalOptions="Center"
+                               Margin="0,20,0,0"/>
+                    </VerticalStackLayout>
+                </ScrollView>
+            </Border>
             
-            <Label x:Name="StatusLabel" 
-                   Text="OFFLINE" 
-                   TextColor="Red" 
-                   VerticalOptions="Center"
-                   FontAttributes="Bold"/>
-        </HorizontalStackLayout>
-
-        <Border Grid.Row="1" Stroke="#00FF00" StrokeThickness="2" BackgroundColor="Black">
-            <GraphicsView x:Name="RadarView" />
-        </Border>
-
-        <Border Grid.Row="2" Stroke="Gray" StrokeThickness="1" BackgroundColor="#1e1e1e">
-            <ScrollView>
-                <Label x:Name="LogLabel" 
-                       Text="In attesa di segnale..." 
-                       TextColor="#AAAAAA" 
-                       FontFamily="Courier New" 
+            <!-- Azioni Admin -->
+            <VerticalStackLayout Grid.Row="2" Spacing="8">
+                <Label x:Name="SelectedPlayerLabel" 
+                       Text="Seleziona un giocatore" 
+                       TextColor="#888" 
                        FontSize="12"
-                       Padding="5"/>
-            </ScrollView>
-        </Border>
+                       HorizontalOptions="Center"/>
+                       
+                <Grid ColumnDefinitions="*, *" ColumnSpacing="5">
+                    <Button Grid.Column="0"
+                            x:Name="KickButton"
+                            Text="⚠️ KICK" 
+                            Clicked="OnKickPlayer"
+                            BackgroundColor="#8B4513"
+                            TextColor="White"
+                            IsEnabled="False"/>
+                    <Button Grid.Column="1"
+                            x:Name="BanButton"
+                            Text="🚫 BAN" 
+                            Clicked="OnBanPlayer"
+                            BackgroundColor="#8B0000"
+                            TextColor="White"
+                            IsEnabled="False"/>
+                </Grid>
+                
+                <Button Text="👹 SPAWN NEMICO"
+                        Clicked="OnSpawnEnemy"
+                        BackgroundColor="#4B0082"
+                        TextColor="White"/>
+            </VerticalStackLayout>
+        </Grid>
         
     </Grid>
 

@@ -35,6 +35,7 @@ public:
     void setIsHost(bool host) { isHost = host; }
     bool getIsHost() const { return isHost; }
     void addRemotePlayer(int id);
+    void removePlayer(uint32_t playerId);  // Rimuove un player dalla scena
     void removeAllEnemies();
     void respawnLocalPlayer();
 };

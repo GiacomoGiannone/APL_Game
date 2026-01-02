@@ -6,10 +6,35 @@ namespace Dashboard.Network;
 public enum PacketType : uint
 {
     None = 0,
-    AssignID = 1,
+    Login = 1,
     Move = 2,
-    PlayerJoined = 3,
-    // Aggiungi qui altri messaggi se necessario
+    PlayerDisconnected = 3,
+    EnemySpawn = 4,
+    EnemyUpdate = 5,
+    EnemyDamage = 6,
+    EnemyDeath = 7,
+    PlayerAttack = 8,
+    HostAnnounce = 9,
+    PlayerDamage = 10,
+    
+    // Comandi Admin (100+)
+    AdminKick = 100,      // Kicka un giocatore
+    AdminBan = 101,       // Banna un giocatore
+    AdminMessage = 102,   // Messaggio broadcast dall'admin
+    AdminSpawnEnemy = 103 // Spawna un nemico
+}
+
+// Info su un giocatore per la dashboard
+public class PlayerInfo
+{
+    public uint Id { get; set; }
+    public string Name { get; set; } = "";
+    public float X { get; set; }
+    public float Y { get; set; }
+    public float Health { get; set; } = 100;
+    public float MaxHealth { get; set; } = 100;
+    public bool IsAlive => Health > 0;
+    public DateTime LastUpdate { get; set; } = DateTime.Now;
 }
 
 public class GamePacket
@@ -31,5 +56,23 @@ public class GamePacket
         if (body != null) writer.Write(body);
         
         return ms.ToArray();
+    }
+    
+    // Helper per creare pacchetto Kick
+    public static byte[] CreateKickPacket(uint playerId)
+    {
+        using var ms = new MemoryStream();
+        using var writer = new BinaryWriter(ms);
+        writer.Write(playerId);
+        return Serialize(PacketType.AdminKick, ms.ToArray());
+    }
+    
+    // Helper per creare pacchetto Ban
+    public static byte[] CreateBanPacket(uint playerId)
+    {
+        using var ms = new MemoryStream();
+        using var writer = new BinaryWriter(ms);
+        writer.Write(playerId);
+        return Serialize(PacketType.AdminBan, ms.ToArray());
     }
 }
