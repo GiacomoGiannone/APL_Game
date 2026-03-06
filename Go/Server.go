@@ -71,8 +71,8 @@ func main() {
 		fmt.Printf("Errore avvio server: %v\n", err)
 		return
 	}
-	fmt.Printf("🚀 Server Go avviato su porta %s\n", PORT)
-	fmt.Printf("📡 LAN Discovery attivo sulla porta UDP %d\n", LAN_DISCOVERY_PORT)
+	fmt.Printf("Server Go avviato su porta %s\n", PORT)
+	fmt.Printf("LAN Discovery attivo sulla porta UDP %d\n", LAN_DISCOVERY_PORT)
 
 	// 2. Loop infinito: accetta nuove connessioni
 	for {
@@ -99,11 +99,11 @@ func startLANDiscoveryBroadcast() {
 	// Ottieni tutti gli indirizzi broadcast delle interfacce di rete
 	broadcastAddrs := getBroadcastAddresses()
 	if len(broadcastAddrs) == 0 {
-		fmt.Println("⚠️ Nessun indirizzo broadcast trovato, uso 255.255.255.255")
+		fmt.Println("Nessun indirizzo broadcast trovato, uso 255.255.255.255")
 		broadcastAddrs = append(broadcastAddrs, "255.255.255.255")
 	}
 
-	fmt.Printf("📡 Broadcast LAN avviato su: %v\n", broadcastAddrs)
+	fmt.Printf("Broadcast LAN avviato su: %v\n", broadcastAddrs)
 
 	// Loop infinito: manda broadcast ogni 2 secondi
 	for {
@@ -193,7 +193,7 @@ func handleClient(conn net.Conn) {
 	bannedIPsMu.Unlock()
 
 	if isBanned {
-		fmt.Printf("🚫 Connessione RIFIUTATA - IP bannato: %s\n", clientIP)
+		fmt.Printf("Connessione RIFIUTATA - IP bannato: %s\n", clientIP)
 		conn.Close()
 		return
 	}
@@ -206,7 +206,7 @@ func handleClient(conn net.Conn) {
 	clients[id] = client
 	clientsMu.Unlock()
 
-	fmt.Printf("➕ Nuovo Giocatore Connesso: ID %d (%s)\n", id, conn.RemoteAddr())
+	fmt.Printf("Nuovo Giocatore Connesso: ID %d (%s)\n", id, conn.RemoteAddr())
 
 	// Invia al client il suo ID assegnato dal server
 	// Pacchetto: Header (8 byte) + playerId (4 byte)
@@ -223,7 +223,7 @@ func handleClient(conn net.Conn) {
 		delete(clients, id)
 		clientsMu.Unlock()
 		conn.Close()
-		fmt.Printf("➖ Giocatore Disconnesso: ID %d\n", id)
+		fmt.Printf("Giocatore Disconnesso: ID %d\n", id)
 
 		// Notifica tutti della disconnessione
 		broadcastPlayerDisconnected(id)
@@ -275,20 +275,20 @@ func handleClient(conn net.Conn) {
 		// NON sovrascrivere l'ID per PLAYER_DAMAGE - l'ID è del player che subisce danno, non del mittente
 		if header.Type == PACKET_PLAYER_DAMAGE {
 			targetId := binary.LittleEndian.Uint32(body[0:4])
-			fmt.Printf("💔 PLAYER_DAMAGE per player %d (inviato da %d)\n", targetId, id)
+			fmt.Printf("PLAYER_DAMAGE per player %d (inviato da %d)\n", targetId, id)
 		}
 
 		// COMANDI ADMIN
 		if header.Type == PACKET_ADMIN_KICK && len(body) >= 4 {
 			targetId := binary.LittleEndian.Uint32(body[0:4])
-			fmt.Printf("⚠️ ADMIN KICK richiesto per Player %d (da ID %d)\n", targetId, id)
+			fmt.Printf("ADMIN KICK richiesto per Player %d (da ID %d)\n", targetId, id)
 			kickPlayer(targetId)
 			continue // Non inoltrare il comando
 		}
 
 		if header.Type == PACKET_ADMIN_BAN && len(body) >= 4 {
 			targetId := binary.LittleEndian.Uint32(body[0:4])
-			fmt.Printf("🚫 ADMIN BAN richiesto per Player %d (da ID %d)\n", targetId, id)
+			fmt.Printf("ADMIN BAN richiesto per Player %d (da ID %d)\n", targetId, id)
 			banPlayer(targetId)
 			continue // Non inoltrare il comando
 		}
@@ -357,10 +357,10 @@ func kickPlayer(targetId uint32) {
 	clientsMu.Unlock()
 
 	if exists {
-		fmt.Printf("⚠️ KICK: Disconnetto Player %d\n", targetId)
+		fmt.Printf("KICK: Disconnetto Player %d\n", targetId)
 		client.conn.Close() // La chiusura triggererà il defer che rimuove dalla mappa
 	} else {
-		fmt.Printf("⚠️ KICK: Player %d non trovato\n", targetId)
+		fmt.Printf("KICK: Player %d non trovato\n", targetId)
 	}
 }
 
@@ -376,9 +376,9 @@ func banPlayer(targetId uint32) {
 		bannedIPs[client.ip] = true
 		bannedIPsMu.Unlock()
 
-		fmt.Printf("🚫 BAN: Player %d (IP: %s) bannato!\n", targetId, client.ip)
+		fmt.Printf("BAN: Player %d (IP: %s) bannato!\n", targetId, client.ip)
 		client.conn.Close()
 	} else {
-		fmt.Printf("🚫 BAN: Player %d non trovato\n", targetId)
+		fmt.Printf("BAN: Player %d non trovato\n", targetId)
 	}
 }

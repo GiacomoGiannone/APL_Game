@@ -260,7 +260,7 @@ int main()
                 spawnPacket.maxHealth = 100.f;
                 
                 NetworkClient::getInstance()->sendPacket(spawnPacket);
-                std::cout << "📤 Inviato spawn nemico ID " << enemyId << " a (" << spawnX << ", " << spawnY << ")" << std::endl;
+                std::cout << "Inviato spawn nemico ID " << enemyId << " a (" << spawnX << ", " << spawnY << ")" << std::endl;
             }
             
             scene.addEntity(std::move(enemy));
