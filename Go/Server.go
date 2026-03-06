@@ -269,7 +269,7 @@ func handleClient(conn net.Conn) {
 		// Forza l'ID anche per PLAYER_ATTACK (il playerId è il primo campo del body)
 		if header.Type == PACKET_PLAYER_ATTACK {
 			binary.LittleEndian.PutUint32(body[0:4], id)
-			fmt.Printf("⚔️ PLAYER_ATTACK da ID %d inoltrato\n", id)
+			fmt.Printf("PLAYER_ATTACK da ID %d inoltrato\n", id)
 		}
 
 		// NON sovrascrivere l'ID per PLAYER_DAMAGE - l'ID è del player che subisce danno, non del mittente
