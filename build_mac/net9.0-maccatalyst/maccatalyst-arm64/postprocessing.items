@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <_PostProcessingItem Include="Dashboard.app/Contents/MacOS/Dashboard">
+      <IsAppExtension>false</IsAppExtension>
+      <BCSymbolMapName>Dashboard.bcsymbolmap</BCSymbolMapName>
+      <NoDSymUtil>true</NoDSymUtil>
+      <dSYMSourcePathExists>false</dSYMSourcePathExists>
+      <NoSymbolStrip>true</NoSymbolStrip>
+      <dSYMInfoPlistRelativePath>Dashboard.app.dSYM\Contents\Info.plist</dSYMInfoPlistRelativePath>
+      <SymbolFile>/Users/sostanco/Desktop/Magistrale/2°Anno/Advanced_Programming_Languages/Progetto/APL_Game/Cs/Dashboard/obj/Debug/net9.0-maccatalyst/maccatalyst-arm64/mtouch-symbols.list</SymbolFile>
+      <DSymName>Dashboard.app.dSYM</DSymName>
+      <SourceProjectPath>/Users/sostanco/Desktop/Magistrale/2°Anno/Advanced_Programming_Languages/Progetto/APL_Game/Cs/Dashboard</SourceProjectPath>
+      <IsXPCService></IsXPCService>
+    </_PostProcessingItem>
+  </ItemGroup>
+</Project>

@@ -28,13 +28,26 @@ Game::Game(sf::RenderWindow* window) : window(window), enemiesToDefeat(0), gameW
     if (!fontLoaded && gameFont.loadFromFile("assets/pp1/miscellaneous/font.ttf")) {
         fontLoaded = true;
     }
-    // Poi prova i font di sistema Windows
+#ifdef __APPLE__
+    // Font di sistema macOS
+    if (!fontLoaded && gameFont.loadFromFile("/System/Library/Fonts/Helvetica.ttc")) {
+        fontLoaded = true;
+    }
+    if (!fontLoaded && gameFont.loadFromFile("/System/Library/Fonts/SFNS.ttf")) {
+        fontLoaded = true;
+    }
+    if (!fontLoaded && gameFont.loadFromFile("/Library/Fonts/Arial Unicode.ttf")) {
+        fontLoaded = true;
+    }
+#else
+    // Font di sistema Windows
     if (!fontLoaded && gameFont.loadFromFile("C:/Windows/Fonts/arial.ttf")) {
         fontLoaded = true;
     }
     if (!fontLoaded && gameFont.loadFromFile("C:/Windows/Fonts/segoeui.ttf")) {
         fontLoaded = true;
     }
+#endif
     
     if (!fontLoaded) {
         std::cerr << "ATTENZIONE: Impossibile caricare nessun font!" << std::endl;

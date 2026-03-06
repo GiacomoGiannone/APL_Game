@@ -4,6 +4,12 @@
 #include <ctime>   // Per time()
 #include <cstdlib> // Per rand() e srand()
 
+#ifdef __APPLE__
+#include <mach-o/dyld.h>   // Per _NSGetExecutablePath
+#include <libgen.h>        // Per dirname
+#include <unistd.h>        // Per chdir
+#endif
+
 #include "Player.h"
 #include "Block.h"
 #include "Scene.h"
@@ -20,6 +26,21 @@ struct SpawnPoint {
 
 int main()
 {
+    // -----------------------------------------------------------
+    // 0. IMPOSTA WORKING DIRECTORY ACCANTO ALL'ESEGUIBILE
+    //    (necessario su macOS quando si lancia da Finder)
+    // -----------------------------------------------------------
+#ifdef __APPLE__
+    {
+        char exePath[1024];
+        uint32_t size = sizeof(exePath);
+        if (_NSGetExecutablePath(exePath, &size) == 0) {
+            char* dir = dirname(exePath);
+            chdir(dir);
+        }
+    }
+#endif
+
     // -----------------------------------------------------------
     // 1. INIZIALIZZAZIONE DATI E RETE
     // -----------------------------------------------------------
