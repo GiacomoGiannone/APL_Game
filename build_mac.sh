@@ -36,8 +36,9 @@ if ! command -v dotnet &> /dev/null; then
     MISSING=1
 else
     DOTNET_VERSION=$(dotnet --version)
-    if [[ "$DOTNET_VERSION" < "9.0" ]]; then
-        echo -e "${RED} .NET SDK versione $DOTNET_VERSION trovata, richiesta >= 9.0${NC}"
+    DOTNET_MAJOR=$(echo "$DOTNET_VERSION" | cut -d'.' -f1)
+    if [ "$DOTNET_MAJOR" -lt 9 ]; then
+        echo -e "${RED}✗ .NET SDK versione $DOTNET_VERSION trovata, richiesta >= 9.0${NC}"
         MISSING=1
     else
         echo -e "${GREEN} .NET SDK: $DOTNET_VERSION${NC}"
