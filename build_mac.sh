@@ -21,26 +21,26 @@ MISSING=0
 
 # CMake
 if ! command -v cmake &> /dev/null; then
-    echo -e "${RED}✗ CMake non trovato${NC}"
+    echo -e "${RED} CMake non trovato${NC}"
     echo "  Installa con: brew install cmake"
     MISSING=1
 else
-    echo -e "${GREEN}✓ CMake trovato$(cmake --version | head -1 | sed 's/cmake version /: /')${NC}"
+    echo -e "${GREEN} CMake trovato$(cmake --version | head -1 | sed 's/cmake version /: /')${NC}"
 fi
 
 # .NET SDK
 if ! command -v dotnet &> /dev/null; then
-    echo -e "${RED}✗ .NET SDK non trovato${NC}"
+    echo -e "${RED} .NET SDK non trovato${NC}"
     echo "  Scarica da: https://dotnet.microsoft.com/download/dotnet/9.0"
     echo "  Oppure con Homebrew: brew install dotnet"
     MISSING=1
 else
     DOTNET_VERSION=$(dotnet --version)
     if [[ "$DOTNET_VERSION" < "9.0" ]]; then
-        echo -e "${RED}✗ .NET SDK versione $DOTNET_VERSION trovata, richiesta >= 9.0${NC}"
+        echo -e "${RED} .NET SDK versione $DOTNET_VERSION trovata, richiesta >= 9.0${NC}"
         MISSING=1
     else
-        echo -e "${GREEN}✓ .NET SDK: $DOTNET_VERSION${NC}"
+        echo -e "${GREEN} .NET SDK: $DOTNET_VERSION${NC}"
     fi
 fi
 
