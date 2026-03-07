@@ -19,7 +19,13 @@ Game* Game::getInstance(sf::RenderWindow* window)
     return instance; 
 }
 
-Game::Game(sf::RenderWindow* window) : window(window), enemiesToDefeat(0), gameWon(false), levelComplete(false), gameOver(false), currentLevel(1), isHost(false)
+void Game::destroyInstance()
+{
+    delete instance;
+    instance = nullptr;
+}
+
+Game::Game(sf::RenderWindow* window) : window(window), currentScene(nullptr), enemiesToDefeat(0), gameWon(false), levelComplete(false), gameOver(false), currentLevel(1), isHost(false)
 {
     // Carica il font per l'UI (prova diversi percorsi)
     bool fontLoaded = false;
@@ -97,6 +103,12 @@ Game::Game(sf::RenderWindow* window) : window(window), enemiesToDefeat(0), gameW
     hostText.setPosition(650.f, 10.f);
 }
 
+Game::~Game()
+{
+    delete currentScene;
+    currentScene = nullptr;
+}
+
 void Game::update(float dt)
 {
     // Se il gioco è finito (vinto o perso), non aggiornare più
@@ -111,6 +123,10 @@ void Game::update(float dt)
 
 void Game::setScene(Scene* newScene)
 {
+    if (currentScene != newScene)
+    {
+        delete currentScene;
+    }
     currentScene = newScene;
 }
 

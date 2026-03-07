@@ -15,6 +15,11 @@ NetworkClient::NetworkClient() : connected(false)
     socket.setBlocking(false); 
 }
 
+NetworkClient::~NetworkClient()
+{
+    disconnect();
+}
+
 NetworkClient* NetworkClient::getInstance() 
 {
     if (instance == nullptr) 
@@ -22,6 +27,12 @@ NetworkClient* NetworkClient::getInstance()
         instance = new NetworkClient();
     }
     return instance;
+}
+
+void NetworkClient::destroyInstance()
+{
+    delete instance;
+    instance = nullptr;
 }
 
 bool NetworkClient::connect(const std::string& ip, unsigned short port) 

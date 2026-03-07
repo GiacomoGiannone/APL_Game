@@ -15,8 +15,11 @@ class NetworkClient
         NetworkClient();
 
     public:
+        ~NetworkClient();
+        
         // Accesso statico
         static NetworkClient* getInstance();
+        static void destroyInstance();
         
         // Connessione
         bool connect(const std::string& ip, unsigned short port);

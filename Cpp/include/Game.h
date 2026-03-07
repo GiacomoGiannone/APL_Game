@@ -32,7 +32,9 @@ class Game
         sf::Text hostText;
 
     public:
+        ~Game();
         static Game* getInstance(sf::RenderWindow* window = nullptr);
+        static void destroyInstance();
         void update(float dt);
         void setScene(Scene* newScene);
         void setLocalPlayerId(int id);

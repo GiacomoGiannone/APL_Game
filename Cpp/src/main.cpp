@@ -168,21 +168,21 @@ int main()
     // -----------------------------------------------------------
     // 3. COSTRUZIONE DELLA SCENA
     // -----------------------------------------------------------
-    Scene scene;
+    Scene* scene = new Scene();
     
     // Passiamo l'ID alla scena (fondamentale per filtrare i pacchetti)
-    scene.setLocalPlayerId(myPlayerId); 
+    scene->setLocalPlayerId(myPlayerId); 
 
     // Creazione del Player Locale
     auto localPlayer = std::make_unique<Player>("PM1", playerName, true);
     localPlayer->setId(myPlayerId); // Assegniamo l'ID al nostro player così sa chi è quando invia i pacchetti
-    scene.addEntity(std::move(localPlayer)); // Non serve più al main, lo passiamo alla scena
+    scene->addEntity(std::move(localPlayer)); // Non serve più al main, lo passiamo alla scena
 
     // Aggiunta Blocchi (Mappa)
     // Funzione helper (lambda) per creare una fila di blocchi velocemente
     auto createPlatform = [&](float startX, float startY, int numBlocks) {
         for(int i = 0; i < numBlocks; i++) {
-            scene.addEntity(std::make_unique<Block>(
+            scene->addEntity(std::make_unique<Block>(
                 startX + (i * 15.0f),  // X: Si sposta di 15px per ogni blocco
                 startY,                // Y: Rimane fissa per la piattaforma
                 "assets/pp1/Blocks/block1.png"
@@ -193,7 +193,7 @@ int main()
     // Funzione helper per creare muri verticali
     auto createWall = [&](float startX, float startY, int numBlocks) {
         for(int i = 0; i < numBlocks; i++) {
-            scene.addEntity(std::make_unique<Block>(
+            scene->addEntity(std::make_unique<Block>(
                 startX,
                 startY + (i * 15.0f),  // Y: Si sposta di 15px per ogni blocco
                 "assets/pp1/Blocks/block1.png"
@@ -284,7 +284,7 @@ int main()
                 std::cout << "Inviato spawn nemico ID " << enemyId << " a (" << spawnX << ", " << spawnY << ")" << std::endl;
             }
             
-            scene.addEntity(std::move(enemy));
+            scene->addEntity(std::move(enemy));
         }
         
         std::cout << "Livello " << level << " - Sconfiggi " << numEnemies << " nemici!" << std::endl;
@@ -299,7 +299,7 @@ int main()
         std::cout << "Modalità ONLINE - Controlli i nemici localmente" << std::endl;
 
     // Impostiamo la scena attiva nel gioco
-    game->setScene(&scene);
+    game->setScene(scene);
 
     // -----------------------------------------------------------
     // 4. GAME LOOP
@@ -325,8 +325,8 @@ int main()
                 if (game->isGameOver())
                 {
                     game->restartGame();
-                    scene.removeAllEnemies();
-                    scene.respawnLocalPlayer();
+                    scene->removeAllEnemies();
+                    scene->respawnLocalPlayer();
                     spawnEnemiesForLevel(1);
                 }
             }
@@ -342,7 +342,7 @@ int main()
             game->nextLevel();
             
             // Rimuovi tutti i nemici esistenti
-            scene.removeAllEnemies();
+            scene->removeAllEnemies();
             
             // Spawn nuovi nemici per il nuovo livello
             spawnEnemiesForLevel(game->getCurrentLevel());
@@ -355,7 +355,7 @@ int main()
         window.clear(sf::Color::Cyan);
         
         // Disegna tutto quello che c'è nella scena
-        scene.draw(window);
+        scene->draw(window);
         
         // Disegna l'interfaccia (contatore nemici, messaggio vittoria)
         game->drawUI();
@@ -364,6 +364,7 @@ int main()
     }
 
     // Pulizia finale
-    NetworkClient::getInstance()->disconnect();
+    Game::destroyInstance();         // Cancella Game (che cancella anche Scene)
+    NetworkClient::destroyInstance(); // Cancella NetworkClient
     return 0;
 }
