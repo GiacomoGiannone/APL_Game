@@ -24,7 +24,7 @@ public class NetworkClient
             _stream = _tcpClient.GetStream();
             _cts = new CancellationTokenSource();
 
-            OnLog?.Invoke($"✅ Connesso a {ip}:{port}");
+            OnLog?.Invoke($" Connesso a {ip}:{port}");
 
             // Avvia il loop
             // Nota: _cts non può essere null qui, ma per sicurezza usiamo il ? o ! se necessario
@@ -35,7 +35,7 @@ public class NetworkClient
         }
         catch (Exception ex)
         {
-            OnLog?.Invoke($"❌ Errore connessione: {ex.Message}");
+            OnLog?.Invoke($" Errore connessione: {ex.Message}");
         }
     }
 
@@ -81,7 +81,7 @@ public class NetworkClient
         catch (OperationCanceledException) { }
         catch (Exception ex)
         {
-            OnLog?.Invoke($"⚠️ Errore ricezione: {ex.Message}");
+            OnLog?.Invoke($" Errore ricezione: {ex.Message}");
             Disconnect();
         }
     }
@@ -119,7 +119,7 @@ public class NetworkClient
     {
         if (_stream == null || !IsConnected)
         {
-            OnLog?.Invoke("❌ Impossibile inviare: non connesso");
+            OnLog?.Invoke(" Impossibile inviare: non connesso");
             return false;
         }
         
@@ -130,7 +130,7 @@ public class NetworkClient
         }
         catch (Exception ex)
         {
-            OnLog?.Invoke($"❌ Errore invio: {ex.Message}");
+            OnLog?.Invoke($" Errore invio: {ex.Message}");
             return false;
         }
     }

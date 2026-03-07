@@ -45,7 +45,7 @@ public partial class MainPage : ContentPage
             await _client.ConnectAsync("127.0.0.1", 8080);
             StatusLabel.Text = "ONLINE";
             StatusLabel.TextColor = Colors.Green;
-            AddLog("✅ Connesso come ADMIN");
+            AddLog(" Connesso come ADMIN");
         }
         else
         {
@@ -59,7 +59,7 @@ public partial class MainPage : ContentPage
             }
             _selectedPlayerId = null;
             UpdateAdminButtons();
-            AddLog("🔌 Disconnesso");
+            AddLog(" Disconnesso");
         }
     }
 
@@ -79,7 +79,7 @@ public partial class MainPage : ContentPage
                     _players[id] = new PlayerInfo { Id = id, Name = $"Player {id}" };
                     _playerListDirty = true;
                     MainThread.BeginInvokeOnMainThread(() => 
-                        AddLog($"👤 Nuovo giocatore: Player {id}"));
+                        AddLog($" Nuovo giocatore: Player {id}"));
                 }
                 
                 _players[id].X = x;
@@ -105,7 +105,7 @@ public partial class MainPage : ContentPage
                     if (health <= 0)
                     {
                         MainThread.BeginInvokeOnMainThread(() => 
-                            AddLog($"💀 Player {id} è MORTO!"));
+                            AddLog($" Player {id} è MORTO!"));
                     }
                 }
             }
@@ -123,7 +123,7 @@ public partial class MainPage : ContentPage
             
             MainThread.BeginInvokeOnMainThread(() => 
             {
-                AddLog($"👋 Player {id} disconnesso");
+                AddLog($" Player {id} disconnesso");
                 if (_selectedPlayerId == id)
                 {
                     _selectedPlayerId = null;
@@ -225,7 +225,7 @@ public partial class MainPage : ContentPage
                 
                 infoStack.Children.Add(new Label
                 {
-                    Text = $"❤️ {player.Health:F0}/{player.MaxHealth:F0}",
+                    Text = $" {player.Health:F0}/{player.MaxHealth:F0}",
                     TextColor = healthColor,
                     FontSize = 10
                 });
@@ -236,7 +236,7 @@ public partial class MainPage : ContentPage
                 // Status indicator
                 var statusLabel = new Label
                 {
-                    Text = player.IsAlive ? "🟢" : "💀",
+                    Text = player.IsAlive ? "A" : "D",
                     FontSize = 20,
                     VerticalOptions = LayoutOptions.Center
                 };
@@ -262,7 +262,7 @@ public partial class MainPage : ContentPage
         SelectedPlayerLabel.Text = $"Selezionato: Player {playerId}";
         SelectedPlayerLabel.TextColor = Colors.Lime;
         UpdateAdminButtons();
-        AddLog($"🎯 Selezionato Player {playerId}");
+        AddLog($" Selezionato Player {playerId}");
     }
     
     private void UpdateAdminButtons()
@@ -291,7 +291,7 @@ public partial class MainPage : ContentPage
         {
             var packet = GamePacket.CreateKickPacket(playerId);
             await _client.SendAsync(packet);
-            AddLog($"⚠️ KICK inviato a Player {playerId}");
+            AddLog($" KICK inviato a Player {playerId}");
         }
     }
     
@@ -308,7 +308,7 @@ public partial class MainPage : ContentPage
         {
             var packet = GamePacket.CreateBanPacket(playerId);
             await _client.SendAsync(packet);
-            AddLog($"🚫 BAN inviato a Player {playerId}");
+            AddLog($" BAN inviato a Player {playerId}");
         }
     }
     
@@ -321,7 +321,7 @@ public partial class MainPage : ContentPage
         }
         
         // TODO: Implementare spawn nemico quando il server lo supporta
-        AddLog("👹 Spawn nemico richiesto (non ancora implementato nel server)");
+        AddLog(" Spawn nemico richiesto (non ancora implementato nel server)");
     }
     
     private void RemoveInactivePlayers()
