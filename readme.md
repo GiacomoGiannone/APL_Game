@@ -1,5 +1,14 @@
 # APL Game
 
+## Se ti trovi su macOs
+    Trovi tutti gli eseguibili nella cartella build_mac
+## Se ti trovi su Windows
+    Trovi tutti gli eseguibili nella cartella buildWindows
+
+### Ti basta allora clonare il repo e avviare gli eseguibili nelle cartelle in base alla piattaforma in cui ti trovi
+
+## Se, invece, vuoi compilare: 
+
 ## Compilazione su macOS
 
 ### Prerequisiti
