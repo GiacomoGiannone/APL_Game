@@ -5,6 +5,8 @@
 ## Se ti trovi su Windows
     Trovi tutti gli eseguibili nella cartella buildWindows
 
+Attenzione, il .exe della dashboard si trova dentro net9.0 molto in basso dopo tutte le cartelle di contorno. 
+
 ### Ti basta allora clonare il repo e avviare gli eseguibili nelle cartelle in base alla piattaforma in cui ti trovi
 
 ## Se, invece, vuoi compilare: 
